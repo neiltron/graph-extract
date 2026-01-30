@@ -1,0 +1,41 @@
+import { DEFAULT_ENTITY_TYPES, DEFAULT_RELATION_TYPES, type Schema } from './types.js';
+
+/**
+ * Build the extraction prompt for the LLM.
+ */
+export function buildPrompt(text: string, schema: Schema): string {
+  const entityTypes = schema.entityTypes ?? DEFAULT_ENTITY_TYPES;
+  const relationTypes = schema.relationTypes ?? DEFAULT_RELATION_TYPES;
+
+  return `Extract all entities and relationships from the following text as a JSON knowledge graph.
+
+TEXT:
+${text}
+
+ENTITY TYPES: ${entityTypes.join(', ')}
+
+RELATIONSHIP TYPES: ${relationTypes.join(', ')}
+${schema.instructions ? `\nADDITIONAL INSTRUCTIONS:\n${schema.instructions}` : ''}
+
+OUTPUT FORMAT:
+Return ONLY valid JSON with this exact structure:
+{
+  "nodes": [
+    {"id": "node_1", "label": "Entity Name", "type": "entity_type"}
+  ],
+  "edges": [
+    {"id": "edge_1", "source": "node_1", "target": "node_2", "type": "relation_type", "label": "human readable"}
+  ]
+}
+
+RULES:
+1. Output ONLY valid JSON - no markdown code blocks, no explanation, no preamble
+2. Every edge source and target must reference an existing node ID
+3. Deduplicate entities - same real-world entity = one node
+4. Use sequential IDs: node_1, node_2, ..., edge_1, edge_2, ...
+5. Extract ALL entities and relationships present in the text
+6. Use lowercase_with_underscores for relation types
+7. Labels should be human-readable
+
+JSON:`;
+}

@@ -1,0 +1,17 @@
+{
+  "name": "graph-extract",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "build": "bun run --filter '*' build",
+    "test": "bun run --filter '*' test",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "bun run --filter '*' typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/bun": "latest",
+    "typescript": "^5.7.0"
+  }
+}

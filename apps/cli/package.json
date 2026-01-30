@@ -1,0 +1,16 @@
+{
+  "name": "@graph-extract/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "graph-extract": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --minify",
+    "dev": "bun run ./src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@graph-extract/core": "workspace:*"
+  }
+}
