@@ -2,6 +2,7 @@ import {
   type ExtractorConfig,
   GraphExtractError,
   ParseError,
+  type ProviderConfig,
   ProviderError,
   type Schema,
   extract,
@@ -15,6 +16,7 @@ export interface ExtractArgs {
   provider?: string;
   baseUrl?: string;
   model?: string;
+  apiKey?: string;
   pretty?: boolean;
 }
 
@@ -116,16 +118,19 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
 /**
  * Resolve provider configuration from args and environment.
  */
-function resolveProvider(args: ExtractArgs) {
+export function resolveProvider(args: ExtractArgs): ProviderConfig {
   const type = args.provider ?? process.env.GRAPH_EXTRACT_PROVIDER ?? 'lmstudio';
 
   const baseUrl = args.baseUrl ?? process.env.GRAPH_EXTRACT_BASE_URL;
 
   const model = args.model ?? process.env.GRAPH_EXTRACT_MODEL ?? '';
 
+  const apiKey = args.apiKey ?? process.env.GRAPH_EXTRACT_API_KEY;
+
   return {
     type,
     baseUrl,
     model,
+    apiKey,
   };
 }

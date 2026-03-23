@@ -21,11 +21,13 @@ Extract Options:
   --provider <type>      Provider type (default: lmstudio)
   --base-url <url>       Provider base URL
   -m, --model <name>     Model identifier
+  --api-key <key>        Provider API key
 
 Environment Variables:
   GRAPH_EXTRACT_PROVIDER    Provider type (default: lmstudio)
   GRAPH_EXTRACT_BASE_URL    Provider base URL
   GRAPH_EXTRACT_MODEL       Model identifier
+  GRAPH_EXTRACT_API_KEY     Provider API key
   OPENAI_API_KEY            API key for OpenAI
   ANTHROPIC_API_KEY         API key for Anthropic
 
@@ -104,6 +106,10 @@ async function main(): Promise<number> {
         break;
       case '--base-url':
         extractArgs.baseUrl = next;
+        i++;
+        break;
+      case '--api-key':
+        extractArgs.apiKey = next;
         i++;
         break;
       case '-p':

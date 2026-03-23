@@ -195,6 +195,7 @@ function resolveProvider(args: ExtractArgs) {
     type: args.provider ?? process.env.GRAPH_EXTRACT_PROVIDER ?? 'lmstudio',
     baseUrl: args.baseUrl ?? process.env.GRAPH_EXTRACT_BASE_URL,
     model: args.model ?? process.env.GRAPH_EXTRACT_MODEL ?? '',
+    apiKey: args.apiKey ?? process.env.GRAPH_EXTRACT_API_KEY,
   };
 }
 ```

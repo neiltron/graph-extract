@@ -57,11 +57,14 @@ bun run apps/cli/src/index.ts validate graph.json --pretty
 GRAPH_EXTRACT_PROVIDER=lmstudio
 GRAPH_EXTRACT_BASE_URL=http://localhost:1234/v1
 GRAPH_EXTRACT_MODEL=local-model
+GRAPH_EXTRACT_API_KEY=local-token
 
 # For cloud providers
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 ```
+
+Use `GRAPH_EXTRACT_API_KEY` or `--api-key` for OpenAI-compatible servers that require a token even on `localhost`.
 
 ## Development
 

@@ -521,7 +521,8 @@ graph-extract -i document.txt -s schema.json
 graph-extract -i document.txt \
   --provider lmstudio \
   --base-url http://localhost:1234/v1 \
-  --model my-model
+  --model my-model \
+  --api-key local-token
 
 # Validate existing graph file
 graph-extract validate graph.json
@@ -541,6 +542,7 @@ graph-extract --help
 | `--provider` | | Provider type (default: lmstudio) |
 | `--base-url` | | Provider base URL |
 | `--model` | `-m` | Model identifier |
+| `--api-key` | | Provider API key |
 | `--help` | `-h` | Show help |
 | `--version` | `-v` | Show version |
 
@@ -563,6 +565,7 @@ graph-extract --help
 GRAPH_EXTRACT_PROVIDER=lmstudio
 GRAPH_EXTRACT_BASE_URL=http://localhost:1234/v1
 GRAPH_EXTRACT_MODEL=local-model
+GRAPH_EXTRACT_API_KEY=local-token
 
 # API keys (for cloud providers)
 OPENAI_API_KEY=sk-...
