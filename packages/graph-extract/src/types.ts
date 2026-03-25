@@ -68,6 +68,12 @@ export interface Schema {
 
   /** Additional instructions to include in the prompt. */
   instructions?: string;
+
+  /** Maximum number of nodes to return. */
+  maxNodes?: number;
+
+  /** Maximum number of edges to return. */
+  maxEdges?: number;
 }
 
 export const DEFAULT_ENTITY_TYPES: EntityType[] = [
@@ -131,6 +137,12 @@ export interface ProviderConfig {
 
   /** API key (not needed for local providers like LM Studio) */
   apiKey?: string;
+
+  /** Stop sequences to send to OpenAI-compatible backends. */
+  stop?: string[];
+
+  /** OpenAI-compatible response format override. */
+  responseFormat?: 'json_object' | 'json_schema';
 }
 
 export interface ExtractionOptions {

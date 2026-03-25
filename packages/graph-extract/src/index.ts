@@ -30,3 +30,11 @@ export { GraphExtractError, ParseError, ProviderError } from './errors.js';
 export { buildPrompt } from './prompt.js';
 export { parseGraph } from './parse.js';
 export { resolveSchema } from './schema.js';
+export { toCanvas } from './canvas.js';
+export type {
+  CanvasDocument,
+  CanvasEdge,
+  CanvasExportOptions,
+  CanvasSide,
+  CanvasTextNode,
+} from './canvas.js';

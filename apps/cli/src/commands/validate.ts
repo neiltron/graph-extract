@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { type Graph, validate } from '@graph-extract/core';
+import { type Graph, validate } from '../../../../packages/graph-extract/src/index.js';
 import { writeError, writeOutput } from '../utils/io.js';
 
 // Exit codes

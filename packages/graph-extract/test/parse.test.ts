@@ -70,6 +70,20 @@ That's the result.`;
     expect(graph.nodes[0]?.label).toBe('Test');
   });
 
+  test('extracts JSON when valid output is followed by extra tokens', () => {
+    const raw = `{
+  "nodes": [{"id": "node_1", "label": "Test", "type": "concept"}],
+  "edges": []
+}
+
+Sure, here are a few additional notes the model should not have added.`;
+
+    const graph = parseGraph(raw);
+
+    expect(graph.nodes).toHaveLength(1);
+    expect(graph.edges).toHaveLength(0);
+  });
+
   test('coerces numeric IDs to strings', () => {
     const raw = JSON.stringify({
       nodes: [{ id: 1, label: 'Alice', type: 'person' }],

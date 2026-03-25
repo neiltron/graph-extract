@@ -19,25 +19,10 @@ export function parseGraph(raw: string): Graph {
     cleaned = fenceMatch[1].trim();
   }
 
-  // Try to find JSON object if there's preamble text
-  if (!cleaned.startsWith('{')) {
-    const jsonStart = cleaned.indexOf('{');
-    if (jsonStart !== -1) {
-      // Find matching closing brace
-      let depth = 0;
-      let jsonEnd = -1;
-      for (let i = jsonStart; i < cleaned.length; i++) {
-        if (cleaned[i] === '{') depth++;
-        if (cleaned[i] === '}') depth--;
-        if (depth === 0) {
-          jsonEnd = i;
-          break;
-        }
-      }
-      if (jsonEnd !== -1) {
-        cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
-      }
-    }
+  // Extract the first balanced JSON object/array if there's preamble or trailing junk.
+  const extracted = extractBalancedJson(cleaned);
+  if (extracted) {
+    cleaned = extracted;
   }
 
   // Remove trailing commas (common LLM mistake)
@@ -65,6 +50,68 @@ export function parseGraph(raw: string): Graph {
   const edges: Edge[] = rawEdges.map(normalizeEdge).filter((e): e is Edge => e !== null);
 
   return { nodes, edges };
+}
+
+function extractBalancedJson(text: string): string | undefined {
+  const objectStart = text.indexOf('{');
+  const arrayStart = text.indexOf('[');
+
+  let start = -1;
+  if (objectStart === -1) {
+    start = arrayStart;
+  } else if (arrayStart === -1) {
+    start = objectStart;
+  } else {
+    start = Math.min(objectStart, arrayStart);
+  }
+
+  if (start === -1) {
+    return undefined;
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < text.length; i++) {
+    const char = text[i];
+    if (!char) {
+      continue;
+    }
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      continue;
+    }
+
+    if (char === '{' || char === '[') {
+      depth++;
+      continue;
+    }
+
+    if (char === '}' || char === ']') {
+      depth--;
+      if (depth === 0) {
+        return text.substring(start, i + 1);
+      }
+    }
+  }
+
+  return undefined;
 }
 
 /**

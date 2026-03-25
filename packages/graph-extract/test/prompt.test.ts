@@ -71,4 +71,18 @@ describe('buildPrompt', () => {
     expect(prompt).toContain('sequential IDs');
     expect(prompt).toContain('lowercase_with_underscores');
   });
+
+  test('includes output limits when provided', () => {
+    const prompt = buildPrompt('test', {
+      maxNodes: 12,
+      maxEdges: 18,
+    });
+
+    expect(prompt).toContain('OUTPUT LIMITS:');
+    expect(prompt).toContain('- max nodes: 12');
+    expect(prompt).toContain('- max edges: 18');
+    expect(prompt).toContain('Return at most 12 nodes');
+    expect(prompt).toContain('Return at most 18 edges');
+    expect(prompt).toContain('keep only the most salient entities and relationships');
+  });
 });

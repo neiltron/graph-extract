@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { type CanvasArgs, runCanvas } from './commands/canvas.js';
 import { type ExtractArgs, runExtract } from './commands/extract.js';
 import { runValidate } from './commands/validate.js';
 
@@ -10,6 +11,7 @@ graph-extract - LLM-based entity and relationship extraction
 Usage:
   graph-extract [options]                  Extract graph from text
   graph-extract validate <file>            Validate existing graph
+  graph-extract canvas <file> [options]    Export graph as Obsidian canvas
   graph-extract --help                     Show this help
   graph-extract --version                  Show version
 
@@ -22,12 +24,22 @@ Extract Options:
   --base-url <url>       Provider base URL
   -m, --model <name>     Model identifier
   --api-key <key>        Provider API key
+  --stop <token>         Stop sequence (repeatable)
+  --response-format <type>  Response format (json_schema or json_object)
+  --max-nodes <n>        Limit nodes in output
+  --max-edges <n>        Limit edges in output
+
+Canvas Options:
+  -o, --output <file>    Output file (default: stdout)
+  -p, --pretty           Pretty print JSON output
 
 Environment Variables:
   GRAPH_EXTRACT_PROVIDER    Provider type (default: lmstudio)
   GRAPH_EXTRACT_BASE_URL    Provider base URL
   GRAPH_EXTRACT_MODEL       Model identifier
   GRAPH_EXTRACT_API_KEY     Provider API key
+  GRAPH_EXTRACT_STOP        Comma-separated stop sequences
+  GRAPH_EXTRACT_RESPONSE_FORMAT  Response format override
   OPENAI_API_KEY            API key for OpenAI
   ANTHROPIC_API_KEY         API key for Anthropic
 
@@ -43,6 +55,9 @@ Examples:
 
   # Validate existing graph
   graph-extract validate graph.json
+
+  # Export to Obsidian canvas
+  graph-extract canvas graph.json -o graph.canvas --pretty
 `;
 
 async function main(): Promise<number> {
@@ -70,6 +85,36 @@ async function main(): Promise<number> {
     }
     const pretty = args.includes('--pretty') || args.includes('-p');
     return runValidate(filePath, pretty);
+  }
+
+  if (args[0] === 'canvas') {
+    const filePath = args[1];
+    if (!filePath) {
+      console.error('Error: canvas requires a file path');
+      console.error('Usage: graph-extract canvas <file> [-o output.canvas] [--pretty]');
+      return 1;
+    }
+
+    const canvasArgs: CanvasArgs = {};
+
+    for (let i = 2; i < args.length; i++) {
+      const arg = args[i];
+      const next = args[i + 1];
+
+      switch (arg) {
+        case '-o':
+        case '--output':
+          canvasArgs.output = next;
+          i++;
+          break;
+        case '-p':
+        case '--pretty':
+          canvasArgs.pretty = true;
+          break;
+      }
+    }
+
+    return runCanvas(filePath, canvasArgs);
   }
 
   // Parse extract arguments
@@ -110,6 +155,25 @@ async function main(): Promise<number> {
         break;
       case '--api-key':
         extractArgs.apiKey = next;
+        i++;
+        break;
+      case '--stop':
+        if (next !== undefined) {
+          extractArgs.stop ??= [];
+          extractArgs.stop.push(next);
+          i++;
+        }
+        break;
+      case '--response-format':
+        extractArgs.responseFormat = next;
+        i++;
+        break;
+      case '--max-nodes':
+        extractArgs.maxNodes = next;
+        i++;
+        break;
+      case '--max-edges':
+        extractArgs.maxEdges = next;
         i++;
         break;
       case '-p':

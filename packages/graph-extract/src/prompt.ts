@@ -6,6 +6,7 @@ import { DEFAULT_ENTITY_TYPES, DEFAULT_RELATION_TYPES, type Schema } from './typ
 export function buildPrompt(text: string, schema: Schema): string {
   const entityTypes = schema.entityTypes ?? DEFAULT_ENTITY_TYPES;
   const relationTypes = schema.relationTypes ?? DEFAULT_RELATION_TYPES;
+  const outputLimits = buildOutputLimits(schema);
 
   return `Extract all entities and relationships from the following text as a JSON knowledge graph.
 
@@ -16,6 +17,7 @@ ENTITY TYPES: ${entityTypes.join(', ')}
 
 RELATIONSHIP TYPES: ${relationTypes.join(', ')}
 ${schema.instructions ? `\nADDITIONAL INSTRUCTIONS:\n${schema.instructions}` : ''}
+${outputLimits ? `\nOUTPUT LIMITS:\n${outputLimits}` : ''}
 
 OUTPUT FORMAT:
 Return ONLY valid JSON with this exact structure:
@@ -36,6 +38,23 @@ RULES:
 5. Extract ALL entities and relationships present in the text
 6. Use lowercase_with_underscores for relation types
 7. Labels should be human-readable
+${schema.maxNodes ? `8. Return at most ${schema.maxNodes} nodes` : ''}
+${schema.maxEdges ? `\n${schema.maxNodes ? 9 : 8}. Return at most ${schema.maxEdges} edges` : ''}
+${schema.maxNodes || schema.maxEdges ? `\n${schema.maxNodes && schema.maxEdges ? 10 : 9}. If limits are reached, keep only the most salient entities and relationships` : ''}
 
 JSON:`;
+}
+
+function buildOutputLimits(schema: Schema): string {
+  const lines: string[] = [];
+
+  if (schema.maxNodes) {
+    lines.push(`- max nodes: ${schema.maxNodes}`);
+  }
+
+  if (schema.maxEdges) {
+    lines.push(`- max edges: ${schema.maxEdges}`);
+  }
+
+  return lines.join('\n');
 }

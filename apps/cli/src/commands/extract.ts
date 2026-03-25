@@ -6,7 +6,7 @@ import {
   ProviderError,
   type Schema,
   extract,
-} from '@graph-extract/core';
+} from '../../../../packages/graph-extract/src/index.js';
 import { readInput, readSchema, writeError, writeOutput } from '../utils/io.js';
 
 export interface ExtractArgs {
@@ -17,6 +17,10 @@ export interface ExtractArgs {
   baseUrl?: string;
   model?: string;
   apiKey?: string;
+  stop?: string[];
+  responseFormat?: string;
+  maxNodes?: string;
+  maxEdges?: string;
   pretty?: boolean;
 }
 
@@ -59,11 +63,20 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
             : undefined,
           instructions:
             typeof schemaData.instructions === 'string' ? schemaData.instructions : undefined,
+          maxNodes: typeof schemaData.maxNodes === 'number' ? schemaData.maxNodes : undefined,
+          maxEdges: typeof schemaData.maxEdges === 'number' ? schemaData.maxEdges : undefined,
         };
       } catch (e) {
         writeError(`Error: ${(e as Error).message}`);
         return EXIT_FILE_ERROR;
       }
+    }
+
+    try {
+      schema = applySchemaOverrides(schema, args);
+    } catch (e) {
+      writeError(`Error: ${(e as Error).message}`);
+      return EXIT_CONFIG_ERROR;
     }
 
     // Build provider config
@@ -95,7 +108,7 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
     return EXIT_SUCCESS;
   } catch (e) {
     if (e instanceof ParseError) {
-      writeError('Error: Failed to parse LLM response');
+      writeError(`Error: ${e.message}`);
       writeError(`Raw response: ${e.rawResponse.slice(0, 200)}...`);
       return EXIT_EXTRACTION_ERROR;
     }
@@ -127,10 +140,85 @@ export function resolveProvider(args: ExtractArgs): ProviderConfig {
 
   const apiKey = args.apiKey ?? process.env.GRAPH_EXTRACT_API_KEY;
 
+  const stop = resolveStopSequences(args.stop, process.env.GRAPH_EXTRACT_STOP);
+
+  const responseFormat = resolveResponseFormat(
+    args.responseFormat ?? process.env.GRAPH_EXTRACT_RESPONSE_FORMAT,
+  );
+
   return {
     type,
     baseUrl,
     model,
     apiKey,
+    stop,
+    responseFormat,
   };
+}
+
+function resolveResponseFormat(value?: string): ProviderConfig['responseFormat'] {
+  if (!value) {
+    return undefined;
+  }
+
+  if (value === 'json_object' || value === 'json_schema') {
+    return value;
+  }
+
+  throw new GraphExtractError(
+    `Unsupported response format: ${value}. Supported values: json_object, json_schema`,
+  );
+}
+
+function resolveStopSequences(
+  cliStops: string[] | undefined,
+  envStops: string | undefined,
+): string[] | undefined {
+  const values =
+    cliStops && cliStops.length > 0
+      ? cliStops
+      : envStops
+        ? envStops
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        : undefined;
+
+  if (!values || values.length === 0) {
+    return undefined;
+  }
+
+  if (values.length > 4) {
+    throw new GraphExtractError('stop supports up to 4 sequences');
+  }
+
+  return values;
+}
+
+function applySchemaOverrides(schema: Schema | undefined, args: ExtractArgs): Schema | undefined {
+  const maxNodes = resolvePositiveInteger(args.maxNodes, 'max-nodes');
+  const maxEdges = resolvePositiveInteger(args.maxEdges, 'max-edges');
+
+  if (maxNodes === undefined && maxEdges === undefined) {
+    return schema;
+  }
+
+  return {
+    ...schema,
+    maxNodes: maxNodes ?? schema?.maxNodes,
+    maxEdges: maxEdges ?? schema?.maxEdges,
+  };
+}
+
+function resolvePositiveInteger(value: string | undefined, name: string): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new GraphExtractError(`${name} must be a positive integer`);
+  }
+
+  return parsed;
 }
