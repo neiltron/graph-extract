@@ -522,7 +522,14 @@ graph-extract -i document.txt \
   --provider lmstudio \
   --base-url http://localhost:1234/v1 \
   --model my-model \
-  --api-key local-token
+  --api-key local-token \
+  --response-format json_schema
+
+# Stop chat-template delimiters
+graph-extract -i document.txt --model my-model --stop '<|im_end|>'
+
+# Limit graph size for weaker local models
+graph-extract -i document.txt --model my-model --max-nodes 25 --max-edges 40
 
 # Validate existing graph file
 graph-extract validate graph.json
@@ -543,6 +550,10 @@ graph-extract --help
 | `--base-url` | | Provider base URL |
 | `--model` | `-m` | Model identifier |
 | `--api-key` | | Provider API key |
+| `--stop` | | Stop sequence; repeat to pass multiple |
+| `--response-format` | | OpenAI-compatible response format |
+| `--max-nodes` | | Maximum number of nodes to return |
+| `--max-edges` | | Maximum number of edges to return |
 | `--help` | `-h` | Show help |
 | `--version` | `-v` | Show version |
 
@@ -552,7 +563,9 @@ graph-extract --help
 {
   "entityTypes": ["person", "company", "product", "technology"],
   "relationTypes": ["works_for", "founded", "created", "uses", "owns"],
-  "instructions": "Focus on business relationships and product ownership."
+  "instructions": "Focus on business relationships and product ownership.",
+  "maxNodes": 25,
+  "maxEdges": 40
 }
 ```
 
@@ -566,6 +579,8 @@ GRAPH_EXTRACT_PROVIDER=lmstudio
 GRAPH_EXTRACT_BASE_URL=http://localhost:1234/v1
 GRAPH_EXTRACT_MODEL=local-model
 GRAPH_EXTRACT_API_KEY=local-token
+GRAPH_EXTRACT_STOP=<|im_end|>
+GRAPH_EXTRACT_RESPONSE_FORMAT=json_schema
 
 # API keys (for cloud providers)
 OPENAI_API_KEY=sk-...
