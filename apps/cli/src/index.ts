@@ -26,6 +26,7 @@ Extract Options:
   --api-key <key>        Provider API key
   --stop <token>         Stop sequence (repeatable)
   --response-format <type>  Response format (json_schema or json_object)
+  --mode <type>          Extraction mode (single or staged)
   --max-nodes <n>        Limit nodes in output
   --max-edges <n>        Limit edges in output
 
@@ -40,6 +41,7 @@ Environment Variables:
   GRAPH_EXTRACT_API_KEY     Provider API key
   GRAPH_EXTRACT_STOP        Comma-separated stop sequences
   GRAPH_EXTRACT_RESPONSE_FORMAT  Response format override
+  GRAPH_EXTRACT_MODE        Extraction mode override
   OPENAI_API_KEY            API key for OpenAI
   ANTHROPIC_API_KEY         API key for Anthropic
 
@@ -52,6 +54,9 @@ Examples:
 
   # With custom schema
   graph-extract -i doc.txt -s schema.json -m my-model --pretty
+
+  # Use staged mode for smaller local models
+  graph-extract -i doc.txt -m my-model --mode staged
 
   # Validate existing graph
   graph-extract validate graph.json
@@ -166,6 +171,10 @@ async function main(): Promise<number> {
         break;
       case '--response-format':
         extractArgs.responseFormat = next;
+        i++;
+        break;
+      case '--mode':
+        extractArgs.mode = next;
         i++;
         break;
       case '--max-nodes':

@@ -4,7 +4,19 @@ import { GraphExtractError, ParseError, ProviderError } from './errors.js';
 import { parseGraph } from './parse.js';
 import { buildPrompt } from './prompt.js';
 import { resolveSchema } from './schema.js';
+import { compileGraphFromStages } from './staged-compile.js';
+import { parseEntityExtraction, parseRelationshipExtraction } from './staged-parse.js';
+import {
+  type ResponseSchemaDefinition,
+  buildEntityPrompt,
+  buildEntityResponseSchema,
+  buildRelationshipPrompt,
+  buildRelationshipResponseSchema,
+} from './staged-prompt.js';
+import type { EntityExtraction, RelationshipExtraction } from './staged-types.js';
 import type {
+  ExtractionDebugStage,
+  ExtractionMode,
   ExtractionOptions,
   ExtractionResult,
   ExtractorConfig,
@@ -13,10 +25,27 @@ import type {
 } from './types.js';
 import { validate } from './validate.js';
 
-const DEFAULT_TEMPERATURE = .3;
+const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_MAX_TOKENS = 2048;
 const DEFAULT_MAX_RETRIES = 2;
 const REQUEST_TIMEOUT_MS = 120000;
+
+interface Usage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+interface LLMResponse {
+  content: string;
+  finishReason?: string | null;
+  usage?: Usage;
+}
+
+interface StageResult<T> {
+  parsed: T;
+  raw: string;
+  usage?: Usage;
+}
 
 /**
  * Extractor class for reusable graph extraction.
@@ -34,27 +63,47 @@ export class Extractor {
    * Extract entities and relationships from text.
    */
   async extract(text: string, options?: ExtractionOptions): Promise<ExtractionResult> {
-    // Validate input
     if (!text || !text.trim()) {
       throw new GraphExtractError('Input text cannot be empty');
     }
 
     const schema = resolveSchema(options?.schema ?? this.config.schema);
-    const prompt = buildPrompt(text, schema);
+    const mode = resolveExtractionMode(options?.mode ?? this.config.mode);
     const temperature = options?.temperature ?? this.config.temperature ?? DEFAULT_TEMPERATURE;
     const maxTokens = this.config.maxTokens ?? DEFAULT_MAX_TOKENS;
     const maxRetries = this.config.maxRetries ?? DEFAULT_MAX_RETRIES;
 
+    if (mode === 'staged') {
+      return this.extractStaged(text, schema, temperature, maxTokens, maxRetries, {
+        includeDebugArtifacts: options?.includeDebugArtifacts ?? false,
+      });
+    }
+
+    return this.extractSingle(text, schema, temperature, maxTokens, maxRetries);
+  }
+
+  private async extractSingle(
+    text: string,
+    schema: Schema,
+    temperature: number,
+    maxTokens: number,
+    maxRetries: number,
+  ): Promise<ExtractionResult> {
+    const prompt = buildPrompt(text, schema);
     let lastError: ParseError | undefined;
     let raw = '';
     let previousRaw: string | undefined;
 
-    // Try extraction with retries
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       let finishReason: string | null | undefined;
 
       try {
-        const response = await this.callLLM(prompt, schema, temperature, maxTokens);
+        const response = await this.callLLM(
+          prompt,
+          temperature,
+          maxTokens,
+          buildGraphResponseSchema(schema),
+        );
         raw = response.content;
         finishReason = response.finishReason;
 
@@ -69,34 +118,135 @@ export class Extractor {
         };
       } catch (e) {
         if (e instanceof ParseError) {
-          lastError = annotateParseError(e, finishReason);
+          lastError = annotateParseError(e, finishReason, 'single');
 
           if (!shouldRetryParseError(raw, previousRaw, finishReason)) {
             break;
           }
 
           previousRaw = raw;
-          // Continue to retry
-        } else {
-          throw e;
+          continue;
         }
+
+        throw e;
       }
     }
 
-    // All retries exhausted
     throw lastError ?? new ParseError('Failed to parse LLM response', raw);
+  }
+
+  private async extractStaged(
+    text: string,
+    schema: Schema,
+    temperature: number,
+    maxTokens: number,
+    maxRetries: number,
+    options: { includeDebugArtifacts: boolean },
+  ): Promise<ExtractionResult> {
+    const entityStage = await this.runStage<EntityExtraction>({
+      name: 'entity',
+      prompt: buildEntityPrompt(text, schema),
+      responseSchema: buildEntityResponseSchema(schema),
+      parser: parseEntityExtraction,
+      temperature,
+      maxTokens,
+      maxRetries,
+    });
+
+    const relationshipStage = await this.runStage<RelationshipExtraction>({
+      name: 'relationship',
+      prompt: buildRelationshipPrompt(text, entityStage.parsed, schema),
+      responseSchema: buildRelationshipResponseSchema(schema),
+      parser: parseRelationshipExtraction,
+      temperature,
+      maxTokens,
+      maxRetries,
+    });
+
+    const compiled = compileGraphFromStages({
+      entities: entityStage.parsed.entities,
+      relationships: relationshipStage.parsed.relationships,
+    });
+    const validationResult = validate(compiled.graph);
+
+    const result: ExtractionResult = {
+      graph: validationResult.graph,
+      warnings: [...compiled.warnings, ...validationResult.warnings],
+      raw: relationshipStage.raw,
+      usage: aggregateUsage(entityStage.usage, relationshipStage.usage),
+    };
+
+    if (options.includeDebugArtifacts) {
+      result.debug = {
+        mode: 'staged',
+        stages: buildDebugStages(entityStage, relationshipStage),
+        compiled: {
+          entities: entityStage.parsed.entities,
+          relationships: relationshipStage.parsed.relationships,
+          graph: compiled.graph,
+        },
+      };
+    }
+
+    return result;
+  }
+
+  private async runStage<T>(options: {
+    name: 'entity' | 'relationship';
+    prompt: string;
+    responseSchema: ResponseSchemaDefinition;
+    parser: (raw: string) => T;
+    temperature: number;
+    maxTokens: number;
+    maxRetries: number;
+  }): Promise<StageResult<T>> {
+    let lastError: ParseError | undefined;
+    let raw = '';
+    let previousRaw: string | undefined;
+
+    for (let attempt = 0; attempt <= options.maxRetries; attempt++) {
+      let finishReason: string | null | undefined;
+
+      try {
+        const response = await this.callLLM(
+          options.prompt,
+          options.temperature,
+          options.maxTokens,
+          options.responseSchema,
+        );
+        raw = response.content;
+        finishReason = response.finishReason;
+
+        return {
+          parsed: options.parser(raw),
+          raw,
+          usage: response.usage,
+        };
+      } catch (e) {
+        if (e instanceof ParseError) {
+          lastError = annotateParseError(e, finishReason, options.name);
+
+          if (!shouldRetryParseError(raw, previousRaw, finishReason)) {
+            break;
+          }
+
+          previousRaw = raw;
+          continue;
+        }
+
+        throw e;
+      }
+    }
+
+    throw lastError ?? new ParseError(`Failed to parse ${options.name} stage response`, raw);
   }
 
   private async callLLM(
     prompt: string,
-    schema: Schema,
     temperature: number,
     maxTokens: number,
-  ): Promise<{
-    content: string;
-    finishReason?: string | null;
-    usage?: { inputTokens: number; outputTokens: number };
-  }> {
+    responseSchema: ResponseSchemaDefinition,
+  ): Promise<LLMResponse> {
     try {
       const request: ChatCompletionCreateParamsNonStreaming = {
         model: this.config.provider.model,
@@ -110,7 +260,10 @@ export class Extractor {
       }
 
       if (this.config.provider.responseFormat) {
-        request.response_format = buildResponseFormat(this.config.provider.responseFormat, schema);
+        request.response_format = buildResponseFormat(
+          this.config.provider.responseFormat,
+          responseSchema,
+        );
       }
 
       const response = await this.client.chat.completions.create(request);
@@ -135,13 +288,57 @@ export class Extractor {
         throw e;
       }
       if (e instanceof Error) {
-        // Mask API key in error messages
         const message = e.message.replace(/sk-[a-zA-Z0-9]+/g, 'sk-***');
         throw new ProviderError(`LLM request failed: ${message}`, e as Error);
       }
       throw new ProviderError('LLM request failed with unknown error');
     }
   }
+}
+
+function resolveExtractionMode(mode: ExtractionMode | undefined): ExtractionMode {
+  if (!mode) {
+    return 'single';
+  }
+
+  if (mode === 'single' || mode === 'staged') {
+    return mode;
+  }
+
+  throw new GraphExtractError(`Unsupported mode: ${mode}`);
+}
+
+function buildDebugStages(
+  entityStage: StageResult<EntityExtraction>,
+  relationshipStage: StageResult<RelationshipExtraction>,
+): ExtractionDebugStage[] {
+  return [
+    {
+      name: 'entity',
+      raw: entityStage.raw,
+      usage: entityStage.usage,
+    },
+    {
+      name: 'relationship',
+      raw: relationshipStage.raw,
+      usage: relationshipStage.usage,
+    },
+  ];
+}
+
+function aggregateUsage(...usages: Array<Usage | undefined>): Usage | undefined {
+  const presentUsages = usages.filter((usage): usage is Usage => usage !== undefined);
+  if (presentUsages.length === 0) {
+    return undefined;
+  }
+
+  return presentUsages.reduce(
+    (total, usage) => ({
+      inputTokens: total.inputTokens + usage.inputTokens,
+      outputTokens: total.outputTokens + usage.outputTokens,
+    }),
+    { inputTokens: 0, outputTokens: 0 },
+  );
 }
 
 function shouldRetryParseError(
@@ -163,12 +360,11 @@ function shouldRetryParseError(
 function annotateParseError(
   error: ParseError,
   finishReason: string | null | undefined,
+  stage: 'single' | 'entity' | 'relationship',
 ): ParseError {
-  if (!finishReason) {
-    return error;
-  }
-
-  return new ParseError(`${error.message} (finish_reason: ${finishReason})`, error.rawResponse);
+  const prefix = stage === 'single' ? 'single-pass extraction' : `${stage} stage`;
+  const suffix = finishReason ? ` (finish_reason: ${finishReason})` : '';
+  return new ParseError(`${prefix}: ${error.message}${suffix}`, error.rawResponse);
 }
 
 function looksLikeTruncatedJson(raw: string): boolean {
@@ -258,9 +454,16 @@ const GRAPH_RESPONSE_SCHEMA = {
   },
 } as const;
 
+function buildGraphResponseSchema(schema: Schema): ResponseSchemaDefinition {
+  return {
+    name: 'knowledge_graph',
+    schema: applyOutputLimits(GRAPH_RESPONSE_SCHEMA, schema),
+  };
+}
+
 function buildResponseFormat(
   responseFormat: ProviderConfig['responseFormat'],
-  schema: Schema,
+  responseSchema: ResponseSchemaDefinition,
 ): ChatCompletionCreateParamsNonStreaming['response_format'] {
   if (responseFormat === 'json_object') {
     return { type: 'json_object' };
@@ -269,9 +472,9 @@ function buildResponseFormat(
   return {
     type: 'json_schema',
     json_schema: {
-      name: 'knowledge_graph',
+      name: responseSchema.name,
       strict: true,
-      schema: applyOutputLimits(GRAPH_RESPONSE_SCHEMA, schema),
+      schema: responseSchema.schema,
     },
   };
 }
@@ -311,9 +514,6 @@ function normalizeText(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value : undefined;
 }
 
-/**
- * Create an OpenAI client configured for the given provider.
- */
 function createOpenAIClient(provider: ProviderConfig): OpenAI {
   const baseURL = getBaseURL(provider);
   const apiKey = getApiKey(provider);
@@ -325,9 +525,6 @@ function createOpenAIClient(provider: ProviderConfig): OpenAI {
   });
 }
 
-/**
- * Determine the base URL for the provider.
- */
 function getBaseURL(provider: ProviderConfig): string | undefined {
   if (provider.baseUrl) {
     return provider.baseUrl;
@@ -339,17 +536,14 @@ function getBaseURL(provider: ProviderConfig): string | undefined {
     case 'ollama':
       return 'http://localhost:11434/v1';
     case 'openai':
-      return undefined; // Use OpenAI default
+      return undefined;
     case 'anthropic':
-      return undefined; // Anthropic uses different SDK, but OpenAI-compatible mode available
+      return undefined;
     default:
       return provider.baseUrl;
   }
 }
 
-/**
- * Determine the API key for the provider.
- */
 function getApiKey(provider: ProviderConfig): string {
   if (provider.apiKey) {
     return provider.apiKey;
@@ -358,7 +552,7 @@ function getApiKey(provider: ProviderConfig): string {
   switch (provider.type) {
     case 'lmstudio':
     case 'ollama':
-      return ''; // Local providers don't need API key
+      return '';
     case 'openai':
       return process.env.OPENAI_API_KEY ?? '';
     case 'anthropic':

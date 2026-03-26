@@ -10,15 +10,23 @@ export type {
   Graph,
   EntityType,
   RelationType,
+  ExtractionMode,
   Schema,
   ExtractorConfig,
   ProviderConfig,
   ExtractionOptions,
+  ExtractionDebugStage,
   ExtractionResult,
   ValidationResult,
   ValidationError,
   ValidationWarning,
 } from './types.js';
+export type {
+  ExtractedEntity,
+  ExtractedRelationship,
+  EntityExtraction,
+  RelationshipExtraction,
+} from './staged-types.js';
 
 // Constants
 export { DEFAULT_ENTITY_TYPES, DEFAULT_RELATION_TYPES } from './types.js';
@@ -28,7 +36,10 @@ export { GraphExtractError, ParseError, ProviderError } from './errors.js';
 
 // Utilities
 export { buildPrompt } from './prompt.js';
-export { parseGraph } from './parse.js';
+export { buildEntityPrompt, buildRelationshipPrompt } from './staged-prompt.js';
+export { parseGraph, parseJsonObject } from './parse.js';
+export { parseEntityExtraction, parseRelationshipExtraction } from './staged-parse.js';
+export { compileGraphFromStages } from './staged-compile.js';
 export { resolveSchema } from './schema.js';
 export { toCanvas } from './canvas.js';
 export type {

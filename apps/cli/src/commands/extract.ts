@@ -1,12 +1,15 @@
 import {
-  type ExtractorConfig,
   GraphExtractError,
   ParseError,
-  type ProviderConfig,
   ProviderError,
-  type Schema,
   extract,
 } from '../../../../packages/graph-extract/src/index.js';
+import type {
+  ExtractionMode,
+  ExtractorConfig,
+  ProviderConfig,
+  Schema,
+} from '../../../../packages/graph-extract/src/types.js';
 import { readInput, readSchema, writeError, writeOutput } from '../utils/io.js';
 
 export interface ExtractArgs {
@@ -19,6 +22,7 @@ export interface ExtractArgs {
   apiKey?: string;
   stop?: string[];
   responseFormat?: string;
+  mode?: string;
   maxNodes?: string;
   maxEdges?: string;
   pretty?: boolean;
@@ -86,9 +90,18 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
       return EXIT_CONFIG_ERROR;
     }
 
+    let mode: ExtractionMode;
+    try {
+      mode = resolveMode(args.mode ?? process.env.GRAPH_EXTRACT_MODE);
+    } catch (e) {
+      writeError(`Error: ${(e as Error).message}`);
+      return EXIT_CONFIG_ERROR;
+    }
+
     const config: ExtractorConfig = {
       provider,
       schema,
+      mode,
     };
 
     // Perform extraction
@@ -168,6 +181,18 @@ function resolveResponseFormat(value?: string): ProviderConfig['responseFormat']
   throw new GraphExtractError(
     `Unsupported response format: ${value}. Supported values: json_object, json_schema`,
   );
+}
+
+export function resolveMode(value?: string): ExtractionMode {
+  if (!value) {
+    return 'single';
+  }
+
+  if (value === 'single' || value === 'staged') {
+    return value;
+  }
+
+  throw new GraphExtractError(`Unsupported mode: ${value}. Supported values: single, staged`);
 }
 
 function resolveStopSequences(

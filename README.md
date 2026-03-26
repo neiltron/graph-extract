@@ -36,6 +36,22 @@ console.log(result.graph);
 // }
 ```
 
+### Staged Mode for Smaller Models
+
+```typescript
+const result = await extract('Alice works at Acme Corp.', {
+  provider: {
+    type: 'lmstudio',
+    baseUrl: 'http://localhost:1234/v1',
+    model: 'small-local-model',
+    responseFormat: 'json_schema',
+  },
+  mode: 'staged',
+});
+```
+
+Use `mode: 'staged'` when smaller local models struggle with the one-shot graph schema. Staged mode breaks extraction into entity and relationship passes, then assembles the final graph deterministically in code.
+
 ### CLI Usage
 
 ```bash
@@ -47,6 +63,9 @@ bun run apps/cli/src/index.ts -i document.txt -o graph.json -m my-model
 
 # Limit output size for small local models
 bun run apps/cli/src/index.ts -i document.txt -m my-model --max-nodes 25 --max-edges 40
+
+# Use staged mode for smaller local models
+bun run apps/cli/src/index.ts -i document.txt -m my-model --mode staged
 
 # Stop chat-template delimiters from leaking into output
 bun run apps/cli/src/index.ts -i document.txt -m my-model --stop '<|im_end|>'
@@ -69,6 +88,7 @@ GRAPH_EXTRACT_MODEL=local-model
 GRAPH_EXTRACT_API_KEY=local-token
 GRAPH_EXTRACT_STOP=<|im_end|>
 GRAPH_EXTRACT_RESPONSE_FORMAT=json_schema
+GRAPH_EXTRACT_MODE=single
 
 # For cloud providers
 OPENAI_API_KEY=sk-...
@@ -77,7 +97,8 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 Use `GRAPH_EXTRACT_API_KEY` or `--api-key` for OpenAI-compatible servers that require a token even on `localhost`.
 Use `GRAPH_EXTRACT_STOP` or repeated `--stop` flags to stop local chat-template delimiters like `<|im_end|>`.
-Use `GRAPH_EXTRACT_RESPONSE_FORMAT=json_schema` or `--response-format json_schema` for structured outputs on compatible OpenAI-style servers like LM Studio.
+Use `GRAPH_EXTRACT_RESPONSE_FORMAT=json_schema` or `--response-format json_schema` for structured outputs on compatible OpenAI-style servers like LM Studio. In staged mode, `json_schema` applies stage-specific schemas for the entity and relationship passes.
+Use `GRAPH_EXTRACT_MODE` or `--mode` to choose between `single` and `staged` extraction.
 Use `--max-nodes` and `--max-edges` to cap output size for smaller or less reliable local models.
 
 ## Development

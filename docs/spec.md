@@ -180,12 +180,17 @@ export const DEFAULT_RELATION_TYPES: RelationType[] = [
 // Extraction Types
 // ============================================================================
 
+export type ExtractionMode = 'single' | 'staged';
+
 export interface ExtractorConfig {
   /** pi-ai provider configuration */
   provider: ProviderConfig;
   
   /** Default schema for all extractions */
   schema?: Schema;
+  
+  /** Extraction mode (default: single) */
+  mode?: ExtractionMode;
   
   /** Temperature for LLM (default: 0) */
   temperature?: number;
@@ -215,6 +220,12 @@ export interface ExtractionOptions {
   /** Override schema for this extraction */
   schema?: Schema;
   
+  /** Override extraction mode for this extraction */
+  mode?: ExtractionMode;
+  
+  /** Include stage-level debug artifacts in the result */
+  includeDebugArtifacts?: boolean;
+  
   /** Override temperature for this extraction */
   temperature?: number;
 }
@@ -226,13 +237,20 @@ export interface ExtractionResult {
   /** Validation warnings (e.g., removed invalid edges) */
   warnings: ValidationWarning[];
   
-  /** Raw LLM response for debugging */
+  /** Raw LLM response for debugging. In staged mode this is the final stage raw response. */
   raw: string;
   
-  /** Token usage if available */
+  /** Token usage if available. In staged mode this aggregates all stage calls. */
   usage?: {
     inputTokens: number;
     outputTokens: number;
+  };
+  
+  /** Optional staged debug artifacts */
+  debug?: {
+    mode: ExtractionMode;
+    stages?: Array<{ name: 'entity' | 'relationship'; raw: string }>;
+    compiled?: unknown;
   };
 }
 
@@ -323,19 +341,24 @@ const extractor = createExtractor({
     baseUrl: 'http://localhost:1234/v1',
     model: 'local-model',
   },
+  mode: 'single',
   temperature: 0,
   maxRetries: 2,
 });
 
 // Reuse for multiple extractions
 const result1 = await extractor.extract(text1);
-const result2 = await extractor.extract(text2);
+const result2 = await extractor.extract(text2, { mode: 'staged' });
 
 // Override schema per-extraction
 const result3 = await extractor.extract(text3, {
   schema: { entityTypes: ['person', 'location'] },
 });
 ```
+
+### Staged Mode
+
+Use `mode: 'staged'` for smaller local models that struggle with the one-shot graph prompt. Staged mode performs an entity pass and a relationship pass, then compiles the final graph deterministically in code.
 
 ### Validation Only
 
@@ -400,6 +423,14 @@ RULES:
 JSON:`;
 }
 ```
+
+### Staged Prompt Builders
+
+Staged mode uses separate prompt builders and response schemas for:
+- entity extraction: `{ entities: [{ text, type, mention? }] }`
+- relationship extraction: `{ relationships: [{ source, target, type, mention? }] }`
+
+When `responseFormat=json_schema` is enabled, staged mode applies stage-specific JSON schemas rather than the final graph schema.
 
 ---
 
@@ -531,6 +562,9 @@ graph-extract -i document.txt --model my-model --stop '<|im_end|>'
 # Limit graph size for weaker local models
 graph-extract -i document.txt --model my-model --max-nodes 25 --max-edges 40
 
+# Use staged mode for smaller local models
+graph-extract -i document.txt --model my-model --mode staged
+
 # Validate existing graph file
 graph-extract validate graph.json
 
@@ -552,6 +586,7 @@ graph-extract --help
 | `--api-key` | | Provider API key |
 | `--stop` | | Stop sequence; repeat to pass multiple |
 | `--response-format` | | OpenAI-compatible response format |
+| `--mode` | | Extraction mode (`single` or `staged`) |
 | `--max-nodes` | | Maximum number of nodes to return |
 | `--max-edges` | | Maximum number of edges to return |
 | `--help` | `-h` | Show help |
@@ -581,6 +616,7 @@ GRAPH_EXTRACT_MODEL=local-model
 GRAPH_EXTRACT_API_KEY=local-token
 GRAPH_EXTRACT_STOP=<|im_end|>
 GRAPH_EXTRACT_RESPONSE_FORMAT=json_schema
+GRAPH_EXTRACT_MODE=single
 
 # API keys (for cloud providers)
 OPENAI_API_KEY=sk-...

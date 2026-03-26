@@ -231,6 +231,270 @@ describe('Extractor', () => {
       response_format: { type: 'json_object' },
     });
   });
+
+  test('extracts a graph in staged mode with aggregated usage and debug artifacts', async () => {
+    let calls = 0;
+
+    const extractor = new Extractor({
+      provider: { type: 'lmstudio', model: 'test-model' },
+      mode: 'staged',
+    });
+
+    (extractor as unknown as { client: unknown }).client = {
+      chat: {
+        completions: {
+          create: mock(async () => {
+            calls++;
+
+            if (calls === 1) {
+              return {
+                choices: [
+                  {
+                    finish_reason: 'stop',
+                    message: {
+                      content: JSON.stringify({
+                        entities: [
+                          { text: 'Alice', type: 'person', mention: 'Alice' },
+                          { text: 'Acme Corp', type: 'organization', mention: 'Acme Corp' },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+                usage: {
+                  prompt_tokens: 40,
+                  completion_tokens: 15,
+                },
+              };
+            }
+
+            return {
+              choices: [
+                {
+                  finish_reason: 'stop',
+                  message: {
+                    content: JSON.stringify({
+                      relationships: [
+                        {
+                          source: 'Alice',
+                          target: 'Acme Corp',
+                          type: 'works_for',
+                          mention: 'works at',
+                        },
+                      ],
+                    }),
+                  },
+                },
+              ],
+              usage: {
+                prompt_tokens: 60,
+                completion_tokens: 20,
+              },
+            };
+          }),
+        },
+      },
+    };
+
+    const result = await extractor.extract('Alice works at Acme Corp.', {
+      includeDebugArtifacts: true,
+    });
+
+    expect(calls).toBe(2);
+    expect(result.graph.nodes).toEqual([
+      { id: 'node_1', label: 'Alice', type: 'person' },
+      { id: 'node_2', label: 'Acme Corp', type: 'organization' },
+    ]);
+    expect(result.graph.edges).toEqual([
+      {
+        id: 'edge_1',
+        source: 'node_1',
+        target: 'node_2',
+        type: 'works_for',
+        label: 'works for',
+      },
+    ]);
+    expect(result.raw).toContain('relationships');
+    expect(result.usage).toEqual({ inputTokens: 100, outputTokens: 35 });
+    expect(result.debug).toMatchObject({
+      mode: 'staged',
+      stages: [{ name: 'entity' }, { name: 'relationship' }],
+    });
+  });
+
+  test('returns a valid graph in staged mode when no relationships are present', async () => {
+    let calls = 0;
+
+    const extractor = new Extractor({
+      provider: { type: 'lmstudio', model: 'test-model' },
+      mode: 'staged',
+    });
+
+    (extractor as unknown as { client: unknown }).client = {
+      chat: {
+        completions: {
+          create: mock(async () => {
+            calls++;
+
+            if (calls === 1) {
+              return {
+                choices: [
+                  {
+                    finish_reason: 'stop',
+                    message: {
+                      content: JSON.stringify({
+                        entities: [{ text: 'Alice', type: 'person', mention: 'Alice' }],
+                      }),
+                    },
+                  },
+                ],
+                usage: {
+                  prompt_tokens: 25,
+                  completion_tokens: 10,
+                },
+              };
+            }
+
+            return {
+              choices: [
+                {
+                  finish_reason: 'stop',
+                  message: {
+                    content: JSON.stringify({ relationships: [] }),
+                  },
+                },
+              ],
+              usage: {
+                prompt_tokens: 30,
+                completion_tokens: 8,
+              },
+            };
+          }),
+        },
+      },
+    };
+
+    const result = await extractor.extract('Alice was mentioned in the text.');
+
+    expect(calls).toBe(2);
+    expect(result.graph.nodes).toEqual([{ id: 'node_1', label: 'Alice', type: 'person' }]);
+    expect(result.graph.edges).toEqual([]);
+    expect(result.debug).toBeUndefined();
+  });
+
+  test('uses stage-specific json_schema response formats in staged mode', async () => {
+    const requests: unknown[] = [];
+    let calls = 0;
+
+    const extractor = new Extractor({
+      provider: { type: 'lmstudio', model: 'test-model', responseFormat: 'json_schema' },
+      mode: 'staged',
+      schema: {
+        entityTypes: ['person', 'organization'],
+        relationTypes: ['works_for'],
+        maxNodes: 5,
+        maxEdges: 7,
+      },
+    });
+
+    (extractor as unknown as { client: unknown }).client = {
+      chat: {
+        completions: {
+          create: mock(async (params: unknown) => {
+            requests.push(params);
+            calls++;
+
+            if (calls === 1) {
+              return {
+                choices: [
+                  {
+                    finish_reason: 'stop',
+                    message: {
+                      content: JSON.stringify({
+                        entities: [
+                          { text: 'Alice', type: 'person', mention: 'Alice' },
+                          { text: 'Acme Corp', type: 'organization', mention: 'Acme Corp' },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+                usage: {
+                  prompt_tokens: 10,
+                  completion_tokens: 5,
+                },
+              };
+            }
+
+            return {
+              choices: [
+                {
+                  finish_reason: 'stop',
+                  message: {
+                    content: JSON.stringify({
+                      relationships: [{ source: 'Alice', target: 'Acme Corp', type: 'works_for' }],
+                    }),
+                  },
+                },
+              ],
+              usage: {
+                prompt_tokens: 12,
+                completion_tokens: 6,
+              },
+            };
+          }),
+        },
+      },
+    };
+
+    await extractor.extract('Alice works at Acme Corp.');
+
+    expect(requests[0]).toMatchObject({
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'entity_extraction',
+          schema: {
+            properties: {
+              entities: {
+                maxItems: 5,
+                items: {
+                  properties: {
+                    type: {
+                      enum: ['person', 'organization'],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(requests[1]).toMatchObject({
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'relationship_extraction',
+          schema: {
+            properties: {
+              relationships: {
+                maxItems: 7,
+                items: {
+                  properties: {
+                    type: {
+                      enum: ['works_for'],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  });
 });
 
 describe('createExtractor', () => {

@@ -55,6 +55,8 @@ export type RelationType =
   | 'related_to'
   | (string & {}); // Allow custom types
 
+export type ExtractionMode = 'single' | 'staged';
+
 // ============================================================================
 // Schema Types
 // ============================================================================
@@ -115,6 +117,9 @@ export interface ExtractorConfig {
   /** Default schema for all extractions */
   schema?: Schema;
 
+  /** Extraction mode (default: single) */
+  mode?: ExtractionMode;
+
   /** Temperature for LLM (default: 0) */
   temperature?: number;
 
@@ -149,8 +154,23 @@ export interface ExtractionOptions {
   /** Override schema for this extraction */
   schema?: Schema;
 
+  /** Override extraction mode for this extraction */
+  mode?: ExtractionMode;
+
+  /** Include stage-level debug artifacts in the result */
+  includeDebugArtifacts?: boolean;
+
   /** Override temperature for this extraction */
   temperature?: number;
+}
+
+export interface ExtractionDebugStage {
+  name: 'entity' | 'relationship';
+  raw: string;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
 }
 
 export interface ExtractionResult {
@@ -160,13 +180,20 @@ export interface ExtractionResult {
   /** Validation warnings (e.g., removed invalid edges) */
   warnings: ValidationWarning[];
 
-  /** Raw LLM response for debugging */
+  /** Raw LLM response for debugging. In staged mode this is the final stage raw response. */
   raw: string;
 
-  /** Token usage if available */
+  /** Token usage if available. In staged mode this aggregates all stages. */
   usage?: {
     inputTokens: number;
     outputTokens: number;
+  };
+
+  /** Optional debug artifacts for staged extraction. */
+  debug?: {
+    mode: ExtractionMode;
+    stages?: ExtractionDebugStage[];
+    compiled?: unknown;
   };
 }
 
@@ -189,7 +216,12 @@ export interface ValidationError {
 }
 
 export interface ValidationWarning {
-  type: 'invalid_edge_source' | 'invalid_edge_target' | 'removed_edge';
+  type:
+    | 'invalid_edge_source'
+    | 'invalid_edge_target'
+    | 'removed_edge'
+    | 'unresolved_relationship_source'
+    | 'unresolved_relationship_target';
   message: string;
   edgeId?: string;
   details?: Record<string, unknown>;
