@@ -232,12 +232,214 @@ describe('Extractor', () => {
     });
   });
 
+  test('defaults staged mode temperature to 0', async () => {
+    const requests: unknown[] = [];
+    let calls = 0;
+
+    const extractor = new Extractor({
+      provider: { type: 'lmstudio', model: 'test-model' },
+      mode: 'staged',
+      schema: {
+        relationTypes: ['works_for'],
+      },
+    });
+
+    (extractor as unknown as { client: unknown }).client = {
+      chat: {
+        completions: {
+          create: mock(async (params: unknown) => {
+            requests.push(params);
+            calls++;
+
+            if (calls === 1) {
+              return {
+                choices: [
+                  {
+                    finish_reason: 'stop',
+                    message: {
+                      content: JSON.stringify({
+                        entities: [
+                          { text: 'Alice', type: 'person' },
+                          { text: 'Acme Corp', type: 'organization' },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+              };
+            }
+
+            return {
+              choices: [
+                {
+                  finish_reason: 'stop',
+                  message: {
+                    content: JSON.stringify({
+                      relationships: [
+                        {
+                          source_id: 'E1',
+                          target_id: 'E2',
+                          type: 'works_for',
+                          snippet_id: 'S1',
+                        },
+                      ],
+                    }),
+                  },
+                },
+              ],
+            };
+          }),
+        },
+      },
+    };
+
+    await extractor.extract('Alice works at Acme Corp.');
+
+    expect(requests).toHaveLength(2);
+    expect(requests[0]).toMatchObject({ temperature: 0 });
+    expect(requests[1]).toMatchObject({ temperature: 0 });
+  });
+
+  test('emits progress events in single mode', async () => {
+    const events: unknown[] = [];
+
+    const extractor = new Extractor({
+      provider: { type: 'lmstudio', model: 'test-model' },
+    });
+
+    (extractor as unknown as { client: unknown }).client = {
+      chat: {
+        completions: {
+          create: mock(async () => mockValidResponse),
+        },
+      },
+    };
+
+    await extractor.extract('Alice works at Acme Corp', {
+      onProgress: (event) => events.push(event),
+    });
+
+    expect(events).toEqual([
+      { type: 'stage_start', mode: 'single', stage: 'single' },
+      { type: 'stage_complete', mode: 'single', stage: 'single' },
+      {
+        type: 'complete',
+        mode: 'single',
+        nodeCount: 2,
+        edgeCount: 1,
+        warningCount: 0,
+      },
+    ]);
+  });
+
+  test('emits progress events in staged mode', async () => {
+    const events: unknown[] = [];
+    let calls = 0;
+
+    const extractor = new Extractor({
+      provider: { type: 'lmstudio', model: 'test-model' },
+      mode: 'staged',
+    });
+
+    (extractor as unknown as { client: unknown }).client = {
+      chat: {
+        completions: {
+          create: mock(async () => {
+            calls++;
+
+            if (calls === 1) {
+              return {
+                choices: [
+                  {
+                    finish_reason: 'stop',
+                    message: {
+                      content: JSON.stringify({
+                        entities: [
+                          { text: 'Alice', type: 'person' },
+                          { text: 'Acme Corp', type: 'organization' },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+              };
+            }
+
+            if (calls === 2) {
+              return {
+                choices: [
+                  {
+                    finish_reason: 'stop',
+                    message: {
+                      content: JSON.stringify({
+                        relationTypes: [
+                          {
+                            name: 'works_for',
+                            description: 'Employment or affiliation relation.',
+                          },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+              };
+            }
+
+            return {
+              choices: [
+                {
+                  finish_reason: 'stop',
+                  message: {
+                    content: JSON.stringify({
+                      relationships: [
+                        {
+                          source_id: 'E1',
+                          target_id: 'E2',
+                          type: 'works_for',
+                          snippet_id: 'S1',
+                        },
+                      ],
+                    }),
+                  },
+                },
+              ],
+            };
+          }),
+        },
+      },
+    };
+
+    await extractor.extract('Alice works at Acme Corp.', {
+      onProgress: (event) => events.push(event),
+    });
+
+    expect(events).toEqual([
+      { type: 'stage_start', mode: 'staged', stage: 'entity' },
+      { type: 'stage_complete', mode: 'staged', stage: 'entity' },
+      { type: 'stage_start', mode: 'staged', stage: 'relation_schema' },
+      { type: 'stage_complete', mode: 'staged', stage: 'relation_schema' },
+      { type: 'stage_start', mode: 'staged', stage: 'relationship' },
+      { type: 'stage_complete', mode: 'staged', stage: 'relationship' },
+      { type: 'compile_start', mode: 'staged' },
+      {
+        type: 'complete',
+        mode: 'staged',
+        nodeCount: 2,
+        edgeCount: 1,
+        warningCount: 0,
+      },
+    ]);
+  });
+
   test('extracts a graph in staged mode with aggregated usage and debug artifacts', async () => {
     let calls = 0;
 
     const extractor = new Extractor({
       provider: { type: 'lmstudio', model: 'test-model' },
       mode: 'staged',
+      schema: {
+        relationTypes: ['works_for'],
+      },
     });
 
     (extractor as unknown as { client: unknown }).client = {
@@ -276,9 +478,10 @@ describe('Extractor', () => {
                     content: JSON.stringify({
                       relationships: [
                         {
-                          source: 'Alice',
-                          target: 'Acme Corp',
+                          source_id: 'E1',
+                          target_id: 'E2',
                           type: 'works_for',
+                          snippet_id: 'S1',
                           mention: 'works at',
                         },
                       ],
@@ -328,6 +531,9 @@ describe('Extractor', () => {
     const extractor = new Extractor({
       provider: { type: 'lmstudio', model: 'test-model' },
       mode: 'staged',
+      schema: {
+        relationTypes: ['works_for'],
+      },
     });
 
     (extractor as unknown as { client: unknown }).client = {
@@ -432,7 +638,14 @@ describe('Extractor', () => {
                   finish_reason: 'stop',
                   message: {
                     content: JSON.stringify({
-                      relationships: [{ source: 'Alice', target: 'Acme Corp', type: 'works_for' }],
+                      relationships: [
+                        {
+                          source_id: 'E1',
+                          target_id: 'E2',
+                          type: 'works_for',
+                          snippet_id: 'S1',
+                        },
+                      ],
                     }),
                   },
                 },
@@ -483,8 +696,17 @@ describe('Extractor', () => {
                 maxItems: 7,
                 items: {
                   properties: {
+                    source_id: {
+                      enum: ['E1', 'E2'],
+                    },
+                    target_id: {
+                      enum: ['E1', 'E2'],
+                    },
                     type: {
-                      enum: ['works_for'],
+                      enum: ['works_for', 'related_to'],
+                    },
+                    snippet_id: {
+                      enum: ['S1'],
                     },
                   },
                 },

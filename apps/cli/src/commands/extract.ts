@@ -6,11 +6,12 @@ import {
 } from '../../../../packages/graph-extract/src/index.js';
 import type {
   ExtractionMode,
+  ExtractionProgressStage,
   ExtractorConfig,
   ProviderConfig,
   Schema,
 } from '../../../../packages/graph-extract/src/types.js';
-import { readInput, readSchema, writeError, writeOutput } from '../utils/io.js';
+import { readInput, readSchema, writeError, writeOutput, writeStatus } from '../utils/io.js';
 
 export interface ExtractArgs {
   input?: string;
@@ -39,6 +40,20 @@ const EXIT_CONFIG_ERROR = 4;
  */
 export async function runExtract(args: ExtractArgs): Promise<number> {
   try {
+    const showProgress = process.stderr.isTTY;
+
+    let mode: ExtractionMode;
+    try {
+      mode = resolveMode(args.mode ?? process.env.GRAPH_EXTRACT_MODE);
+    } catch (e) {
+      writeError(`Error: ${(e as Error).message}`);
+      return EXIT_CONFIG_ERROR;
+    }
+
+    if (showProgress) {
+      writeStatus(`[graph-extract] Reading input from ${args.input ? args.input : 'stdin'}...`);
+    }
+
     // Read input text
     let text: string;
     try {
@@ -56,6 +71,10 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
     // Build schema
     let schema: Schema | undefined;
     if (args.schema) {
+      if (showProgress) {
+        writeStatus(`[graph-extract] Loading schema from ${args.schema}...`);
+      }
+
       try {
         const schemaData = readSchema(args.schema);
         schema = {
@@ -90,18 +109,17 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
       return EXIT_CONFIG_ERROR;
     }
 
-    let mode: ExtractionMode;
-    try {
-      mode = resolveMode(args.mode ?? process.env.GRAPH_EXTRACT_MODE);
-    } catch (e) {
-      writeError(`Error: ${(e as Error).message}`);
-      return EXIT_CONFIG_ERROR;
+    if (showProgress) {
+      writeStatus(
+        `[graph-extract] Starting ${mode} extraction with ${provider.type}/${provider.model}...`,
+      );
     }
 
     const config: ExtractorConfig = {
       provider,
       schema,
       mode,
+      onProgress: createProgressReporter(showProgress),
     };
 
     // Perform extraction
@@ -117,6 +135,10 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
       ? JSON.stringify(result.graph, null, 2)
       : JSON.stringify(result.graph);
     writeOutput(`${output}\n`, args.output);
+
+    if (showProgress && args.output) {
+      writeStatus(`[graph-extract] Wrote graph to ${args.output}`);
+    }
 
     return EXIT_SUCCESS;
   } catch (e) {
@@ -246,4 +268,46 @@ function resolvePositiveInteger(value: string | undefined, name: string): number
   }
 
   return parsed;
+}
+
+function createProgressReporter(showProgress: boolean): ExtractorConfig['onProgress'] {
+  if (!showProgress) {
+    return undefined;
+  }
+
+  return (event) => {
+    switch (event.type) {
+      case 'stage_start':
+        writeStatus(`[graph-extract] ${formatStage(event.stage)}...`);
+        break;
+      case 'stage_complete':
+        writeStatus(`[graph-extract] ${formatStage(event.stage, true)}.`);
+        break;
+      case 'compile_start':
+        writeStatus('[graph-extract] Compiling final graph...');
+        break;
+      case 'complete':
+        writeStatus(
+          `[graph-extract] Extraction complete (${event.nodeCount} nodes, ${event.edgeCount} edges, ${event.warningCount} warnings).`,
+        );
+        break;
+    }
+  };
+}
+
+function formatStage(stage: ExtractionProgressStage, completed = false): string {
+  switch (stage) {
+    case 'single':
+      return completed ? 'Single-pass extraction complete' : 'Running single-pass extraction';
+    case 'entity':
+      return completed ? 'Entity extraction stage complete' : 'Running entity extraction stage';
+    case 'relation_schema':
+      return completed ? 'Relation schema stage complete' : 'Running relation schema stage';
+    case 'relationship':
+      return completed
+        ? 'Relationship extraction stage complete'
+        : 'Running relationship extraction stage';
+    default:
+      return completed ? 'Extraction stage complete' : 'Running extraction stage';
+  }
 }

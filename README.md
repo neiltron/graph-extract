@@ -50,7 +50,27 @@ const result = await extract('Alice works at Acme Corp.', {
 });
 ```
 
-Use `mode: 'staged'` when smaller local models struggle with the one-shot graph schema. Staged mode breaks extraction into entity and relationship passes, then assembles the final graph deterministically in code.
+Use `mode: 'staged'` when smaller local models struggle with the one-shot graph schema. Staged mode breaks extraction into simpler passes, then assembles the final graph deterministically in code:
+
+1. **Entity pass** extracts candidate entities with grounding mentions. Entities get stable intermediate IDs (`E1`, `E2`, ...) and deterministic code builds an entity catalog plus evidence snippets from the source text.
+2. **Relation schema pass** (only when you don't provide `relationTypes`) proposes relation types from the catalog and snippets.
+3. **Relationship pass** extracts relationships over the entity catalog, referencing entities by ID.
+
+Compilation then handles deduplication, alias-based entity resolution, referential integrity, and final node/edge ID assignment.
+
+### Progress Events
+
+Pass `onProgress` (in the extractor config or per-call options) to observe stage transitions, which is useful for CLI spinners or logging with slow local models:
+
+```typescript
+const result = await extract(text, {
+  provider,
+  mode: 'staged',
+  onProgress: (event) => console.error(event.type, 'stage' in event ? event.stage : ''),
+});
+```
+
+Events: `stage_start` / `stage_complete` (stages: `single`, `entity`, `relation_schema`, `relationship`), `compile_start`, and `complete` with node, edge, and warning counts.
 
 ### CLI Usage
 

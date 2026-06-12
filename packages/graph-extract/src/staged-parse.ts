@@ -3,6 +3,8 @@ import type {
   EntityExtraction,
   ExtractedEntity,
   ExtractedRelationship,
+  RelationSchemaExtraction,
+  RelationTypeDefinition,
   RelationshipExtraction,
 } from './staged-types.js';
 
@@ -18,6 +20,25 @@ export function parseEntityExtraction(raw: string): EntityExtraction {
     entities: rawEntities
       .map(normalizeEntity)
       .filter((entity): entity is ExtractedEntity => entity !== null),
+  };
+}
+
+export function parseRelationSchemaExtraction(raw: string): RelationSchemaExtraction {
+  const parsed = parseJsonObject(raw);
+  const rawRelationTypes = Array.isArray(parsed.relationTypes)
+    ? parsed.relationTypes
+    : Array.isArray(parsed.relation_types)
+      ? parsed.relation_types
+      : Array.isArray(parsed.relations)
+        ? parsed.relations
+        : [];
+
+  const relationTypes = rawRelationTypes
+    .map(normalizeRelationTypeDefinition)
+    .filter((relationType): relationType is RelationTypeDefinition => relationType !== null);
+
+  return {
+    relationTypes: ensureFallbackRelationType(dedupeRelationTypes(relationTypes)),
   };
 }
 
@@ -55,24 +76,55 @@ function normalizeEntity(raw: unknown): ExtractedEntity | null {
   };
 }
 
+function normalizeRelationTypeDefinition(raw: unknown): RelationTypeDefinition | null {
+  if (typeof raw === 'string') {
+    const name = normalizeRelationType(raw);
+    return name ? { name } : null;
+  }
+
+  if (typeof raw !== 'object' || raw === null) {
+    return null;
+  }
+
+  const obj = raw as Record<string, unknown>;
+  const name = normalizeRelationType(obj.name ?? obj.type ?? obj.label);
+  if (!name) {
+    return null;
+  }
+
+  return {
+    name,
+    description: normalizeText(obj.description ?? obj.summary),
+  };
+}
+
 function normalizeRelationship(raw: unknown): ExtractedRelationship | null {
   if (typeof raw !== 'object' || raw === null) {
     return null;
   }
 
   const obj = raw as Record<string, unknown>;
+  const sourceId = normalizeText(obj.source_id ?? obj.sourceId);
+  const targetId = normalizeText(obj.target_id ?? obj.targetId);
   const source = normalizeText(obj.source ?? obj.from);
   const target = normalizeText(obj.target ?? obj.to);
 
-  if (!source || !target) {
+  if (!sourceId && !source) {
+    return null;
+  }
+
+  if (!targetId && !target) {
     return null;
   }
 
   return {
+    sourceId,
+    targetId,
     source,
     target,
     type: normalizeRelationType(obj.type),
     mention: normalizeText(obj.mention ?? obj.snippet),
+    snippetId: normalizeText(obj.snippet_id ?? obj.snippetId),
   };
 }
 
@@ -91,4 +143,36 @@ function normalizeRelationType(value: unknown): string {
   }
 
   return value.trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+function dedupeRelationTypes(relationTypes: RelationTypeDefinition[]): RelationTypeDefinition[] {
+  const seen = new Set<string>();
+  const deduped: RelationTypeDefinition[] = [];
+
+  for (const relationType of relationTypes) {
+    if (seen.has(relationType.name)) {
+      continue;
+    }
+
+    seen.add(relationType.name);
+    deduped.push(relationType);
+  }
+
+  return deduped;
+}
+
+function ensureFallbackRelationType(
+  relationTypes: RelationTypeDefinition[],
+): RelationTypeDefinition[] {
+  const withoutFallback = relationTypes.filter(
+    (relationType) => relationType.name !== 'related_to',
+  );
+
+  return [
+    ...withoutFallback,
+    {
+      name: 'related_to',
+      description: 'Fallback relation when no more specific listed type clearly fits.',
+    },
+  ];
 }

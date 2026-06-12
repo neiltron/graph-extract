@@ -1,4 +1,5 @@
-import type { ExtractedEntity, ExtractedRelationship } from './staged-types.js';
+import { buildEntityCatalog } from './staged-context.js';
+import type { CatalogEntity, ExtractedEntity, ExtractedRelationship } from './staged-types.js';
 import type { Edge, Graph, Node, ValidationWarning } from './types.js';
 
 export interface CompileGraphInput {
@@ -14,13 +15,17 @@ export interface CompiledGraphResult {
 export function compileGraphFromStages(input: CompileGraphInput): CompiledGraphResult {
   const warnings: ValidationWarning[] = [];
   const nodes: Node[] = [];
-  const nodeIdByKey = new Map<string, string>();
+  const intermediateNodeIdByKey = new Map<string, string>();
+  const exactNodeIdByKey = new Map<string, string>();
+  const aliasNodeIdByKey = new Map<string, string>();
+  const ambiguousAliasKeys = new Set<string>();
   const relationshipKeys = new Set<string>();
   const edges: Edge[] = [];
+  const catalog = buildEntityCatalog(input.entities);
 
-  for (const entity of input.entities) {
+  for (const entity of catalog) {
     const key = normalizeEntityKey(entity.text);
-    if (!key || nodeIdByKey.has(key)) {
+    if (!key) {
       continue;
     }
 
@@ -28,20 +33,36 @@ export function compileGraphFromStages(input: CompileGraphInput): CompiledGraphR
     const type = normalizeEntityType(entity.type);
     const nodeId = `node_${nodes.length + 1}`;
 
-    nodeIdByKey.set(key, nodeId);
+    intermediateNodeIdByKey.set(entity.id, nodeId);
+    exactNodeIdByKey.set(key, nodeId);
     nodes.push({
       id: nodeId,
       label,
       type,
     });
+
+    for (const aliasKey of buildEntityAliasKeys(entity, type)) {
+      registerAlias(aliasNodeIdByKey, ambiguousAliasKeys, exactNodeIdByKey, aliasKey, nodeId);
+    }
   }
 
   for (const relationship of input.relationships) {
-    const sourceKey = normalizeEntityKey(relationship.source);
-    const targetKey = normalizeEntityKey(relationship.target);
+    const sourceId = resolveRelationshipEndpoint(
+      relationship,
+      'source',
+      intermediateNodeIdByKey,
+      exactNodeIdByKey,
+      aliasNodeIdByKey,
+    );
+    const targetId = resolveRelationshipEndpoint(
+      relationship,
+      'target',
+      intermediateNodeIdByKey,
+      exactNodeIdByKey,
+      aliasNodeIdByKey,
+    );
     const type = normalizeRelationType(relationship.type);
 
-    const sourceId = sourceKey ? nodeIdByKey.get(sourceKey) : undefined;
     if (!sourceId) {
       warnings.push({
         type: 'unresolved_relationship_source',
@@ -55,7 +76,6 @@ export function compileGraphFromStages(input: CompileGraphInput): CompiledGraphR
       continue;
     }
 
-    const targetId = targetKey ? nodeIdByKey.get(targetKey) : undefined;
     if (!targetId) {
       warnings.push({
         type: 'unresolved_relationship_target',
@@ -91,7 +111,7 @@ export function compileGraphFromStages(input: CompileGraphInput): CompiledGraphR
 }
 
 function normalizeEntityKey(value: string): string | undefined {
-  const normalized = value.trim().toLowerCase();
+  const normalized = normalizeWhitespace(stripWrappingQuotes(value)).toLowerCase();
   return normalized || undefined;
 }
 
@@ -103,4 +123,94 @@ function normalizeEntityType(value: string): string {
 function normalizeRelationType(value: string): string {
   const normalized = value.trim().toLowerCase().replace(/\s+/g, '_');
   return normalized || 'related_to';
+}
+
+function buildEntityAliasKeys(entity: CatalogEntity, type: string): string[] {
+  const label = entity.text.trim();
+  const mention = entity.mention?.trim();
+  const aliases = new Set<string>();
+
+  aliases.add(`${label} (${type})`);
+
+  if (mention && normalizeEntityKey(mention) !== normalizeEntityKey(label)) {
+    aliases.add(mention);
+    aliases.add(`${label} (${mention})`);
+    aliases.add(`${mention} (${label})`);
+  }
+
+  return [...aliases];
+}
+
+function registerAlias(
+  aliasNodeIdByKey: Map<string, string>,
+  ambiguousAliasKeys: Set<string>,
+  exactNodeIdByKey: Map<string, string>,
+  alias: string,
+  nodeId: string,
+) {
+  const key = normalizeEntityKey(alias);
+  if (!key || exactNodeIdByKey.has(key) || ambiguousAliasKeys.has(key)) {
+    return;
+  }
+
+  const existing = aliasNodeIdByKey.get(key);
+  if (!existing) {
+    aliasNodeIdByKey.set(key, nodeId);
+    return;
+  }
+
+  if (existing !== nodeId) {
+    aliasNodeIdByKey.delete(key);
+    ambiguousAliasKeys.add(key);
+  }
+}
+
+function resolveRelationshipEndpoint(
+  relationship: ExtractedRelationship,
+  role: 'source' | 'target',
+  intermediateNodeIdByKey: Map<string, string>,
+  exactNodeIdByKey: Map<string, string>,
+  aliasNodeIdByKey: Map<string, string>,
+): string | undefined {
+  const endpointId = role === 'source' ? relationship.sourceId : relationship.targetId;
+  if (endpointId) {
+    const directMatch = intermediateNodeIdByKey.get(endpointId.trim());
+    if (directMatch) {
+      return directMatch;
+    }
+  }
+
+  const endpointText = role === 'source' ? relationship.source : relationship.target;
+  if (!endpointText) {
+    return undefined;
+  }
+
+  const directKey = normalizeEntityKey(endpointText);
+  if (!directKey) {
+    return undefined;
+  }
+
+  const directMatch = exactNodeIdByKey.get(directKey) ?? aliasNodeIdByKey.get(directKey);
+  if (directMatch) {
+    return directMatch;
+  }
+
+  const strippedKey = normalizeEntityKey(stripTrailingParenthetical(endpointText));
+  if (!strippedKey || strippedKey === directKey) {
+    return undefined;
+  }
+
+  return exactNodeIdByKey.get(strippedKey) ?? aliasNodeIdByKey.get(strippedKey);
+}
+
+function stripTrailingParenthetical(value: string): string {
+  return normalizeWhitespace(stripWrappingQuotes(value).replace(/\s*\([^()]+\)\s*$/, ''));
+}
+
+function stripWrappingQuotes(value: string): string {
+  return value.trim().replace(/^["'`“”]+|["'`“”]+$/g, '');
+}
+
+function normalizeWhitespace(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
 }

@@ -56,6 +56,25 @@ export type RelationType =
   | (string & {}); // Allow custom types
 
 export type ExtractionMode = 'single' | 'staged';
+export type ExtractionProgressStage = 'single' | 'entity' | 'relation_schema' | 'relationship';
+
+export type ExtractionProgressEvent =
+  | {
+      type: 'stage_start' | 'stage_complete';
+      mode: ExtractionMode;
+      stage: ExtractionProgressStage;
+    }
+  | {
+      type: 'compile_start';
+      mode: 'staged';
+    }
+  | {
+      type: 'complete';
+      mode: ExtractionMode;
+      nodeCount: number;
+      edgeCount: number;
+      warningCount: number;
+    };
 
 // ============================================================================
 // Schema Types
@@ -128,6 +147,9 @@ export interface ExtractorConfig {
 
   /** Number of retries on parse failure (default: 2) */
   maxRetries?: number;
+
+  /** Receive progress events as extraction advances. */
+  onProgress?: (event: ExtractionProgressEvent) => void;
 }
 
 export interface ProviderConfig {
@@ -162,10 +184,13 @@ export interface ExtractionOptions {
 
   /** Override temperature for this extraction */
   temperature?: number;
+
+  /** Receive progress events as extraction advances. */
+  onProgress?: (event: ExtractionProgressEvent) => void;
 }
 
 export interface ExtractionDebugStage {
-  name: 'entity' | 'relationship';
+  name: 'entity' | 'relation_schema' | 'relationship';
   raw: string;
   usage?: {
     inputTokens: number;

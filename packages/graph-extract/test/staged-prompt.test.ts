@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import {
   buildEntityPrompt,
   buildEntityResponseSchema,
+  buildRelationSchemaPrompt,
+  buildRelationSchemaResponseSchema,
   buildRelationshipPrompt,
   buildRelationshipResponseSchema,
 } from '../src/staged-prompt.js';
@@ -20,33 +22,49 @@ describe('staged prompts', () => {
     expect(prompt).toContain('Prefer precision over recall');
   });
 
-  test('buildRelationshipPrompt includes candidate entities and relationship rules', () => {
+  test('buildRelationSchemaPrompt includes entities, snippets, and schema rules', () => {
+    const prompt = buildRelationSchemaPrompt(
+      [
+        { id: 'E1', text: 'Alice', type: 'person', mention: 'Alice' },
+        { id: 'E2', text: 'Acme Corp', type: 'organization', mention: 'Acme Corp' },
+      ],
+      [{ id: 'S1', text: 'Alice works at Acme Corp.', entityIds: ['E1', 'E2'] }],
+      {},
+    );
+
+    expect(prompt).toContain('ENTITY CATALOG:');
+    expect(prompt).toContain('EVIDENCE SNIPPETS:');
+    expect(prompt).toContain('"id": "E1"');
+    expect(prompt).toContain('"id": "S1"');
+    expect(prompt).toContain('Always include related_to as a fallback relation');
+  });
+
+  test('buildRelationshipPrompt includes id-based entities, schema, and snippet rules', () => {
     const prompt = buildRelationshipPrompt(
-      'Alice works at Acme Corp.',
+      [
+        { id: 'E1', text: 'Alice', type: 'person', mention: 'Alice' },
+        { id: 'E2', text: 'Acme Corp', type: 'organization', mention: 'Acme Corp' },
+      ],
+      [
+        { name: 'works_for', description: 'Employment or affiliation relation.' },
+        { name: 'related_to', description: 'Fallback relation.' },
+      ],
+      [{ id: 'S1', text: 'Alice works at Acme Corp.', entityIds: ['E1', 'E2'] }],
       {
-        entities: [
-          { text: 'Alice', type: 'person', mention: 'Alice' },
-          { text: 'Acme Corp', type: 'organization', mention: 'Acme Corp' },
-        ],
-      },
-      {
-        relationTypes: ['works_for', 'owns'],
         maxEdges: 3,
       },
     );
 
-    expect(prompt).toContain('CANDIDATE ENTITIES:');
-    expect(prompt).toContain('- Alice (person) — mention: Alice');
-    expect(prompt).toContain('RELATIONSHIP TYPES: works_for, owns');
-    expect(prompt).toContain('Use only the provided candidate entities as relationship endpoints');
+    expect(prompt).toContain('ENTITY CATALOG:');
+    expect(prompt).toContain('RELATIONSHIP SCHEMA:');
+    expect(prompt).toContain('EVIDENCE SNIPPETS:');
+    expect(prompt).toContain('"id": "E1"');
+    expect(prompt).toContain('"name": "works_for"');
+    expect(prompt).toContain(
+      'Use only entity IDs from the entity catalog as relationship endpoints',
+    );
+    expect(prompt).toContain('Every relationship must cite one supporting snippet_id');
     expect(prompt).toContain('Return at most 3 relationships');
-  });
-
-  test('buildRelationshipPrompt handles empty candidate entity lists', () => {
-    const prompt = buildRelationshipPrompt('No entities here.', { entities: [] }, {});
-
-    expect(prompt).toContain('No candidate entities were found');
-    expect(prompt).toContain('Return an empty relationships array');
   });
 
   test('buildEntityResponseSchema applies enums and maxItems', () => {
@@ -72,11 +90,38 @@ describe('staged prompts', () => {
     });
   });
 
-  test('buildRelationshipResponseSchema applies enums and maxItems', () => {
-    const responseSchema = buildRelationshipResponseSchema({
-      relationTypes: ['works_for', 'owns'],
-      maxEdges: 2,
+  test('buildRelationSchemaResponseSchema caps relation type definitions', () => {
+    const responseSchema = buildRelationSchemaResponseSchema();
+
+    expect(responseSchema.name).toBe('relation_schema_extraction');
+    expect(responseSchema.schema).toMatchObject({
+      properties: {
+        relationTypes: {
+          maxItems: 8,
+          items: {
+            properties: {
+              name: { type: 'string' },
+              description: { type: 'string' },
+            },
+          },
+        },
+      },
     });
+  });
+
+  test('buildRelationshipResponseSchema applies relation, entity, and snippet enums', () => {
+    const responseSchema = buildRelationshipResponseSchema(
+      [
+        { name: 'works_for', description: 'Employment or affiliation relation.' },
+        { name: 'related_to', description: 'Fallback relation.' },
+      ],
+      [
+        { id: 'E1', text: 'Alice', type: 'person' },
+        { id: 'E2', text: 'Acme Corp', type: 'organization' },
+      ],
+      [{ id: 'S1', text: 'Alice works at Acme Corp.', entityIds: ['E1', 'E2'] }],
+      { maxEdges: 2 },
+    );
 
     expect(responseSchema.name).toBe('relationship_extraction');
     expect(responseSchema.schema).toMatchObject({
@@ -85,8 +130,17 @@ describe('staged prompts', () => {
           maxItems: 2,
           items: {
             properties: {
+              source_id: {
+                enum: ['E1', 'E2'],
+              },
+              target_id: {
+                enum: ['E1', 'E2'],
+              },
               type: {
-                enum: ['works_for', 'owns'],
+                enum: ['works_for', 'related_to'],
+              },
+              snippet_id: {
+                enum: ['S1'],
               },
             },
           },

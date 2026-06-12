@@ -5,19 +5,34 @@ import { parseGraph } from './parse.js';
 import { buildPrompt } from './prompt.js';
 import { resolveSchema } from './schema.js';
 import { compileGraphFromStages } from './staged-compile.js';
-import { parseEntityExtraction, parseRelationshipExtraction } from './staged-parse.js';
+import { buildEntityCatalog, buildEvidenceSnippets } from './staged-context.js';
+import {
+  parseEntityExtraction,
+  parseRelationSchemaExtraction,
+  parseRelationshipExtraction,
+} from './staged-parse.js';
 import {
   type ResponseSchemaDefinition,
   buildEntityPrompt,
   buildEntityResponseSchema,
+  buildRelationSchemaPrompt,
+  buildRelationSchemaResponseSchema,
   buildRelationshipPrompt,
   buildRelationshipResponseSchema,
 } from './staged-prompt.js';
-import type { EntityExtraction, RelationshipExtraction } from './staged-types.js';
+import type {
+  CatalogEntity,
+  EntityExtraction,
+  RelationSchemaExtraction,
+  RelationTypeDefinition,
+  RelationshipExtraction,
+  RelationshipSnippet,
+} from './staged-types.js';
 import type {
   ExtractionDebugStage,
   ExtractionMode,
   ExtractionOptions,
+  ExtractionProgressEvent,
   ExtractionResult,
   ExtractorConfig,
   ProviderConfig,
@@ -26,9 +41,10 @@ import type {
 import { validate } from './validate.js';
 
 const DEFAULT_TEMPERATURE = 0.3;
-const DEFAULT_MAX_TOKENS = 2048;
+const DEFAULT_STAGED_TEMPERATURE = 0;
+const DEFAULT_MAX_TOKENS = 4096;
 const DEFAULT_MAX_RETRIES = 2;
-const REQUEST_TIMEOUT_MS = 120000;
+const REQUEST_TIMEOUT_MS = 240000;
 
 interface Usage {
   inputTokens: number;
@@ -46,6 +62,8 @@ interface StageResult<T> {
   raw: string;
   usage?: Usage;
 }
+
+type ProgressCallback = (event: ExtractionProgressEvent) => void;
 
 /**
  * Extractor class for reusable graph extraction.
@@ -67,19 +85,33 @@ export class Extractor {
       throw new GraphExtractError('Input text cannot be empty');
     }
 
-    const schema = resolveSchema(options?.schema ?? this.config.schema);
+    const requestedSchema = options?.schema ?? this.config.schema;
+    const schema = resolveSchema(requestedSchema);
     const mode = resolveExtractionMode(options?.mode ?? this.config.mode);
-    const temperature = options?.temperature ?? this.config.temperature ?? DEFAULT_TEMPERATURE;
+    const temperature = resolveTemperature(mode, options?.temperature ?? this.config.temperature);
     const maxTokens = this.config.maxTokens ?? DEFAULT_MAX_TOKENS;
     const maxRetries = this.config.maxRetries ?? DEFAULT_MAX_RETRIES;
+    const onProgress = options?.onProgress ?? this.config.onProgress;
+    const hasExplicitRelationTypes = (requestedSchema?.relationTypes?.length ?? 0) > 0;
 
-    if (mode === 'staged') {
-      return this.extractStaged(text, schema, temperature, maxTokens, maxRetries, {
-        includeDebugArtifacts: options?.includeDebugArtifacts ?? false,
-      });
-    }
+    const result =
+      mode === 'staged'
+        ? await this.extractStaged(text, schema, temperature, maxTokens, maxRetries, {
+            includeDebugArtifacts: options?.includeDebugArtifacts ?? false,
+            onProgress,
+            hasExplicitRelationTypes,
+          })
+        : await this.extractSingle(text, schema, temperature, maxTokens, maxRetries, onProgress);
 
-    return this.extractSingle(text, schema, temperature, maxTokens, maxRetries);
+    emitProgress(onProgress, {
+      type: 'complete',
+      mode,
+      nodeCount: result.graph.nodes.length,
+      edgeCount: result.graph.edges.length,
+      warningCount: result.warnings.length,
+    });
+
+    return result;
   }
 
   private async extractSingle(
@@ -88,7 +120,14 @@ export class Extractor {
     temperature: number,
     maxTokens: number,
     maxRetries: number,
+    onProgress?: ProgressCallback,
   ): Promise<ExtractionResult> {
+    emitProgress(onProgress, {
+      type: 'stage_start',
+      mode: 'single',
+      stage: 'single',
+    });
+
     const prompt = buildPrompt(text, schema);
     let lastError: ParseError | undefined;
     let raw = '';
@@ -110,12 +149,20 @@ export class Extractor {
         const graph = parseGraph(raw);
         const validationResult = validate(graph);
 
-        return {
+        const result = {
           graph: validationResult.graph,
           warnings: validationResult.warnings,
           raw,
           usage: response.usage,
         };
+
+        emitProgress(onProgress, {
+          type: 'stage_complete',
+          mode: 'single',
+          stage: 'single',
+        });
+
+        return result;
       } catch (e) {
         if (e instanceof ParseError) {
           lastError = annotateParseError(e, finishReason, 'single');
@@ -141,8 +188,18 @@ export class Extractor {
     temperature: number,
     maxTokens: number,
     maxRetries: number,
-    options: { includeDebugArtifacts: boolean },
+    options: {
+      includeDebugArtifacts: boolean;
+      onProgress?: ProgressCallback;
+      hasExplicitRelationTypes: boolean;
+    },
   ): Promise<ExtractionResult> {
+    emitProgress(options.onProgress, {
+      type: 'stage_start',
+      mode: 'staged',
+      stage: 'entity',
+    });
+
     const entityStage = await this.runStage<EntityExtraction>({
       name: 'entity',
       prompt: buildEntityPrompt(text, schema),
@@ -153,18 +210,88 @@ export class Extractor {
       maxRetries,
     });
 
-    const relationshipStage = await this.runStage<RelationshipExtraction>({
-      name: 'relationship',
-      prompt: buildRelationshipPrompt(text, entityStage.parsed, schema),
-      responseSchema: buildRelationshipResponseSchema(schema),
-      parser: parseRelationshipExtraction,
-      temperature,
-      maxTokens,
-      maxRetries,
+    emitProgress(options.onProgress, {
+      type: 'stage_complete',
+      mode: 'staged',
+      stage: 'entity',
+    });
+
+    const catalog = buildEntityCatalog(entityStage.parsed.entities);
+    const snippets = buildEvidenceSnippets(text, catalog);
+    const focusedCatalog = filterCatalogBySnippets(catalog, snippets);
+
+    let relationSchemaStage: StageResult<RelationSchemaExtraction> | undefined;
+    let relationTypes = buildRelationTypeDefinitions(schema.relationTypes);
+
+    if (!options.hasExplicitRelationTypes && snippets.length > 0) {
+      emitProgress(options.onProgress, {
+        type: 'stage_start',
+        mode: 'staged',
+        stage: 'relation_schema',
+      });
+
+      relationSchemaStage = await this.runStage<RelationSchemaExtraction>({
+        name: 'relation_schema',
+        prompt: buildRelationSchemaPrompt(focusedCatalog, snippets, schema),
+        responseSchema: buildRelationSchemaResponseSchema(),
+        parser: parseRelationSchemaExtraction,
+        temperature,
+        maxTokens,
+        maxRetries,
+      });
+
+      relationTypes = relationSchemaStage.parsed.relationTypes;
+
+      emitProgress(options.onProgress, {
+        type: 'stage_complete',
+        mode: 'staged',
+        stage: 'relation_schema',
+      });
+    }
+
+    let relationshipStage: StageResult<RelationshipExtraction>;
+
+    if (snippets.length === 0) {
+      relationshipStage = {
+        parsed: { relationships: [] },
+        raw: JSON.stringify({ relationships: [] }),
+      };
+    } else {
+      emitProgress(options.onProgress, {
+        type: 'stage_start',
+        mode: 'staged',
+        stage: 'relationship',
+      });
+
+      relationshipStage = await this.runStage<RelationshipExtraction>({
+        name: 'relationship',
+        prompt: buildRelationshipPrompt(focusedCatalog, relationTypes, snippets, schema),
+        responseSchema: buildRelationshipResponseSchema(
+          relationTypes,
+          focusedCatalog,
+          snippets,
+          schema,
+        ),
+        parser: parseRelationshipExtraction,
+        temperature,
+        maxTokens,
+        maxRetries,
+      });
+
+      emitProgress(options.onProgress, {
+        type: 'stage_complete',
+        mode: 'staged',
+        stage: 'relationship',
+      });
+    }
+
+    emitProgress(options.onProgress, {
+      type: 'compile_start',
+      mode: 'staged',
     });
 
     const compiled = compileGraphFromStages({
-      entities: entityStage.parsed.entities,
+      entities: catalog,
       relationships: relationshipStage.parsed.relationships,
     });
     const validationResult = validate(compiled.graph);
@@ -173,15 +300,17 @@ export class Extractor {
       graph: validationResult.graph,
       warnings: [...compiled.warnings, ...validationResult.warnings],
       raw: relationshipStage.raw,
-      usage: aggregateUsage(entityStage.usage, relationshipStage.usage),
+      usage: aggregateUsage(entityStage.usage, relationSchemaStage?.usage, relationshipStage.usage),
     };
 
     if (options.includeDebugArtifacts) {
       result.debug = {
         mode: 'staged',
-        stages: buildDebugStages(entityStage, relationshipStage),
+        stages: buildDebugStages([entityStage, relationSchemaStage, relationshipStage]),
         compiled: {
-          entities: entityStage.parsed.entities,
+          entities: catalog,
+          relationTypes,
+          snippets,
           relationships: relationshipStage.parsed.relationships,
           graph: compiled.graph,
         },
@@ -192,7 +321,7 @@ export class Extractor {
   }
 
   private async runStage<T>(options: {
-    name: 'entity' | 'relationship';
+    name: 'entity' | 'relation_schema' | 'relationship';
     prompt: string;
     responseSchema: ResponseSchemaDefinition;
     parser: (raw: string) => T;
@@ -252,7 +381,7 @@ export class Extractor {
         model: this.config.provider.model,
         messages: [{ role: 'user', content: prompt }],
         temperature,
-        max_tokens: maxTokens,
+        max_completion_tokens: maxTokens,
       };
 
       if (this.config.provider.stop?.length) {
@@ -308,22 +437,84 @@ function resolveExtractionMode(mode: ExtractionMode | undefined): ExtractionMode
   throw new GraphExtractError(`Unsupported mode: ${mode}`);
 }
 
+function resolveTemperature(mode: ExtractionMode, temperature: number | undefined): number {
+  if (temperature !== undefined) {
+    return temperature;
+  }
+
+  return mode === 'staged' ? DEFAULT_STAGED_TEMPERATURE : DEFAULT_TEMPERATURE;
+}
+
+function filterCatalogBySnippets(
+  catalog: CatalogEntity[],
+  snippets: RelationshipSnippet[],
+): CatalogEntity[] {
+  if (snippets.length === 0) {
+    return catalog;
+  }
+
+  const snippetEntityIds = new Set(snippets.flatMap((snippet) => snippet.entityIds));
+  const filteredCatalog = catalog.filter((entity) => snippetEntityIds.has(entity.id));
+
+  return filteredCatalog.length > 0 ? filteredCatalog : catalog;
+}
+
+function buildRelationTypeDefinitions(
+  relationTypes: string[] | undefined,
+): RelationTypeDefinition[] {
+  const definitions = new Map<string, RelationTypeDefinition>();
+
+  for (const relationType of relationTypes ?? []) {
+    const normalizedName = relationType.trim().toLowerCase().replace(/\s+/g, '_');
+    if (!normalizedName || definitions.has(normalizedName)) {
+      continue;
+    }
+
+    definitions.set(normalizedName, { name: normalizedName });
+  }
+
+  if (!definitions.has('related_to')) {
+    definitions.set('related_to', { name: 'related_to' });
+  }
+
+  return [...definitions.values()];
+}
+
 function buildDebugStages(
-  entityStage: StageResult<EntityExtraction>,
-  relationshipStage: StageResult<RelationshipExtraction>,
+  stages: Array<
+    | StageResult<EntityExtraction>
+    | StageResult<RelationSchemaExtraction>
+    | StageResult<RelationshipExtraction>
+    | undefined
+  >,
 ): ExtractionDebugStage[] {
-  return [
-    {
-      name: 'entity',
-      raw: entityStage.raw,
-      usage: entityStage.usage,
-    },
-    {
-      name: 'relationship',
-      raw: relationshipStage.raw,
-      usage: relationshipStage.usage,
-    },
-  ];
+  return stages.flatMap((stage, index) => {
+    if (!stage) {
+      return [];
+    }
+
+    const names: Array<ExtractionDebugStage['name']> = [
+      'entity',
+      'relation_schema',
+      'relationship',
+    ];
+    const name = names[index];
+    if (!name) {
+      return [];
+    }
+
+    return [
+      {
+        name,
+        raw: stage.raw,
+        usage: stage.usage,
+      },
+    ];
+  });
+}
+
+function emitProgress(onProgress: ProgressCallback | undefined, event: ExtractionProgressEvent) {
+  onProgress?.(event);
 }
 
 function aggregateUsage(...usages: Array<Usage | undefined>): Usage | undefined {
@@ -360,9 +551,10 @@ function shouldRetryParseError(
 function annotateParseError(
   error: ParseError,
   finishReason: string | null | undefined,
-  stage: 'single' | 'entity' | 'relationship',
+  stage: 'single' | 'entity' | 'relation_schema' | 'relationship',
 ): ParseError {
-  const prefix = stage === 'single' ? 'single-pass extraction' : `${stage} stage`;
+  const prefix =
+    stage === 'single' ? 'single-pass extraction' : `${stage.replace(/_/g, ' ')} stage`;
   const suffix = finishReason ? ` (finish_reason: ${finishReason})` : '';
   return new ParseError(`${prefix}: ${error.message}${suffix}`, error.rawResponse);
 }
