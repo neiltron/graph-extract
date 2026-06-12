@@ -1,0 +1,800 @@
+{
+  "nodes": [
+    {
+      "id": "prev_root",
+      "type": "text",
+      "x": 120,
+      "y": 1837,
+      "width": 288,
+      "height": 144,
+      "text": "# Previous staged pipeline (v1)\n\nType: organization",
+      "color": "#0f766e"
+    },
+    {
+      "id": "prev_input",
+      "type": "text",
+      "x": 568,
+      "y": 1837,
+      "width": 224,
+      "height": 144,
+      "text": "# Full document\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "prev_entity",
+      "type": "text",
+      "x": 952,
+      "y": 1837,
+      "width": 240,
+      "height": 144,
+      "text": "# Entity extraction\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "prev_entities",
+      "type": "text",
+      "x": 1366,
+      "y": 1837,
+      "width": 264,
+      "height": 144,
+      "text": "# Raw entities + mentions\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "prev_schema",
+      "type": "text",
+      "x": 1352,
+      "y": 2106,
+      "width": 292,
+      "height": 144,
+      "text": "# Static default relation schema\n\nType: product",
+      "color": "#7c3aed"
+    },
+    {
+      "id": "prev_relationship",
+      "type": "text",
+      "x": 1804,
+      "y": 1964,
+      "width": 348,
+      "height": 174,
+      "text": "# Relationship extraction (full doc + entity list)\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "prev_rel_out",
+      "type": "text",
+      "x": 2312,
+      "y": 1964,
+      "width": 320,
+      "height": 174,
+      "text": "# Free-text endpoints + relation labels\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "prev_compile",
+      "type": "text",
+      "x": 2792,
+      "y": 1822,
+      "width": 312,
+      "height": 174,
+      "text": "# Compile + exact-text reconciliation\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "prev_graph",
+      "type": "text",
+      "x": 3264,
+      "y": 1837,
+      "width": 220,
+      "height": 144,
+      "text": "# Final graph\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "curr_root",
+      "type": "text",
+      "x": 120,
+      "y": 120,
+      "width": 284,
+      "height": 144,
+      "text": "# Current staged pipeline (v2)\n\nType: organization",
+      "color": "#0f766e"
+    },
+    {
+      "id": "curr_input",
+      "type": "text",
+      "x": 564,
+      "y": 120,
+      "width": 224,
+      "height": 144,
+      "text": "# Full document\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "curr_entity",
+      "type": "text",
+      "x": 948,
+      "y": 120,
+      "width": 240,
+      "height": 144,
+      "text": "# Entity extraction\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "curr_catalog",
+      "type": "text",
+      "x": 1348,
+      "y": 120,
+      "width": 288,
+      "height": 144,
+      "text": "# Canonical entity catalog (E*)\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "curr_snip_builder",
+      "type": "text",
+      "x": 1796,
+      "y": 287,
+      "width": 268,
+      "height": 144,
+      "text": "# Evidence snippet builder\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "curr_snips",
+      "type": "text",
+      "x": 2224,
+      "y": 287,
+      "width": 256,
+      "height": 144,
+      "text": "# Snippets + entity IDs\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "curr_supplied",
+      "type": "text",
+      "x": 2668,
+      "y": 658,
+      "width": 260,
+      "height": 144,
+      "text": "# Supplied relationTypes\n\nType: product",
+      "color": "#7c3aed"
+    },
+    {
+      "id": "curr_induce",
+      "type": "text",
+      "x": 2640,
+      "y": 414,
+      "width": 316,
+      "height": 174,
+      "text": "# Relation schema induction (optional)\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "curr_schema",
+      "type": "text",
+      "x": 3116,
+      "y": 429,
+      "width": 260,
+      "height": 144,
+      "text": "# Active relation schema\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "curr_relationship",
+      "type": "text",
+      "x": 3536,
+      "y": 272,
+      "width": 332,
+      "height": 174,
+      "text": "# Relationship extraction (IDs + snippets)\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "curr_rel_out",
+      "type": "text",
+      "x": 4028,
+      "y": 272,
+      "width": 308,
+      "height": 174,
+      "text": "# source_id / target_id + snippet_id\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "curr_compile",
+      "type": "text",
+      "x": 4496,
+      "y": 120,
+      "width": 244,
+      "height": 144,
+      "text": "# Compile + validate\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "curr_graph",
+      "type": "text",
+      "x": 4900,
+      "y": 120,
+      "width": 220,
+      "height": 144,
+      "text": "# Final graph\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "next_root",
+      "type": "text",
+      "x": 120,
+      "y": 1057,
+      "width": 288,
+      "height": 144,
+      "text": "# Target staged pipeline (next)\n\nType: organization",
+      "color": "#0f766e"
+    },
+    {
+      "id": "next_input",
+      "type": "text",
+      "x": 568,
+      "y": 1057,
+      "width": 224,
+      "height": 144,
+      "text": "# Full document\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "next_entity",
+      "type": "text",
+      "x": 952,
+      "y": 1184,
+      "width": 240,
+      "height": 144,
+      "text": "# Entity extraction\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "next_catalog",
+      "type": "text",
+      "x": 1352,
+      "y": 1184,
+      "width": 288,
+      "height": 144,
+      "text": "# Canonical entity catalog (E*)\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "next_prune",
+      "type": "text",
+      "x": 1800,
+      "y": 1184,
+      "width": 272,
+      "height": 144,
+      "text": "# Entity salience / pruning\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "next_focus",
+      "type": "text",
+      "x": 2232,
+      "y": 1184,
+      "width": 244,
+      "height": 144,
+      "text": "# Focused entity set\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "next_snip_builder",
+      "type": "text",
+      "x": 2636,
+      "y": 1042,
+      "width": 316,
+      "height": 174,
+      "text": "# Evidence retrieval / snippet builder\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "next_snips",
+      "type": "text",
+      "x": 3112,
+      "y": 1057,
+      "width": 284,
+      "height": 144,
+      "text": "# Snippet windows + entity IDs\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "next_supplied",
+      "type": "text",
+      "x": 3562,
+      "y": 1438,
+      "width": 260,
+      "height": 144,
+      "text": "# Supplied relationTypes\n\nType: product",
+      "color": "#7c3aed"
+    },
+    {
+      "id": "next_induce",
+      "type": "text",
+      "x": 3556,
+      "y": 1224,
+      "width": 272,
+      "height": 144,
+      "text": "# Relation schema induction\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "next_schema",
+      "type": "text",
+      "x": 3988,
+      "y": 1224,
+      "width": 260,
+      "height": 144,
+      "text": "# Active relation schema\n\nType: concept",
+      "color": "#15803d"
+    },
+    {
+      "id": "next_relationship",
+      "type": "text",
+      "x": 4408,
+      "y": 1042,
+      "width": 328,
+      "height": 174,
+      "text": "# Snippet-local relation extraction (IDs)\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "next_merge",
+      "type": "text",
+      "x": 4896,
+      "y": 1057,
+      "width": 256,
+      "height": 144,
+      "text": "# Global merge + dedupe\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "next_compile",
+      "type": "text",
+      "x": 5312,
+      "y": 1057,
+      "width": 244,
+      "height": 144,
+      "text": "# Compile + validate\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "next_compact",
+      "type": "text",
+      "x": 5716,
+      "y": 1042,
+      "width": 312,
+      "height": 174,
+      "text": "# Graph compaction / salience pruning\n\nType: event",
+      "color": "#2563eb"
+    },
+    {
+      "id": "next_graph",
+      "type": "text",
+      "x": 6188,
+      "y": 1057,
+      "width": 220,
+      "height": 144,
+      "text": "# Final graph\n\nType: concept",
+      "color": "#15803d"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "fromNode": "prev_root",
+      "fromSide": "right",
+      "toNode": "prev_input",
+      "toSide": "left",
+      "label": "part_of",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_2",
+      "fromNode": "prev_input",
+      "fromSide": "right",
+      "toNode": "prev_entity",
+      "toSide": "left",
+      "label": "related_to",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_3",
+      "fromNode": "prev_entity",
+      "fromSide": "right",
+      "toNode": "prev_entities",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_4",
+      "fromNode": "prev_entities",
+      "fromSide": "right",
+      "toNode": "prev_relationship",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_5",
+      "fromNode": "prev_input",
+      "fromSide": "right",
+      "toNode": "prev_relationship",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_6",
+      "fromNode": "prev_schema",
+      "fromSide": "right",
+      "toNode": "prev_relationship",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_7",
+      "fromNode": "prev_relationship",
+      "fromSide": "right",
+      "toNode": "prev_rel_out",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_8",
+      "fromNode": "prev_entities",
+      "fromSide": "right",
+      "toNode": "prev_compile",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_9",
+      "fromNode": "prev_rel_out",
+      "fromSide": "right",
+      "toNode": "prev_compile",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_10",
+      "fromNode": "prev_compile",
+      "fromSide": "right",
+      "toNode": "prev_graph",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_11",
+      "fromNode": "curr_root",
+      "fromSide": "right",
+      "toNode": "curr_input",
+      "toSide": "left",
+      "label": "part_of",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_12",
+      "fromNode": "curr_input",
+      "fromSide": "right",
+      "toNode": "curr_entity",
+      "toSide": "left",
+      "label": "related_to",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_13",
+      "fromNode": "curr_entity",
+      "fromSide": "right",
+      "toNode": "curr_catalog",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_14",
+      "fromNode": "curr_input",
+      "fromSide": "right",
+      "toNode": "curr_snip_builder",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_15",
+      "fromNode": "curr_catalog",
+      "fromSide": "right",
+      "toNode": "curr_snip_builder",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_16",
+      "fromNode": "curr_snip_builder",
+      "fromSide": "right",
+      "toNode": "curr_snips",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_17",
+      "fromNode": "curr_catalog",
+      "fromSide": "right",
+      "toNode": "curr_induce",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_18",
+      "fromNode": "curr_snips",
+      "fromSide": "right",
+      "toNode": "curr_induce",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_19",
+      "fromNode": "curr_induce",
+      "fromSide": "right",
+      "toNode": "curr_schema",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_20",
+      "fromNode": "curr_supplied",
+      "fromSide": "right",
+      "toNode": "curr_schema",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_21",
+      "fromNode": "curr_catalog",
+      "fromSide": "right",
+      "toNode": "curr_relationship",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_22",
+      "fromNode": "curr_snips",
+      "fromSide": "right",
+      "toNode": "curr_relationship",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_23",
+      "fromNode": "curr_schema",
+      "fromSide": "right",
+      "toNode": "curr_relationship",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_24",
+      "fromNode": "curr_relationship",
+      "fromSide": "right",
+      "toNode": "curr_rel_out",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_25",
+      "fromNode": "curr_catalog",
+      "fromSide": "right",
+      "toNode": "curr_compile",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_26",
+      "fromNode": "curr_rel_out",
+      "fromSide": "right",
+      "toNode": "curr_compile",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_27",
+      "fromNode": "curr_compile",
+      "fromSide": "right",
+      "toNode": "curr_graph",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_28",
+      "fromNode": "next_root",
+      "fromSide": "right",
+      "toNode": "next_input",
+      "toSide": "left",
+      "label": "part_of",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_29",
+      "fromNode": "next_input",
+      "fromSide": "right",
+      "toNode": "next_entity",
+      "toSide": "left",
+      "label": "related_to",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_30",
+      "fromNode": "next_entity",
+      "fromSide": "right",
+      "toNode": "next_catalog",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_31",
+      "fromNode": "next_catalog",
+      "fromSide": "right",
+      "toNode": "next_prune",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_32",
+      "fromNode": "next_prune",
+      "fromSide": "right",
+      "toNode": "next_focus",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_33",
+      "fromNode": "next_input",
+      "fromSide": "right",
+      "toNode": "next_snip_builder",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_34",
+      "fromNode": "next_focus",
+      "fromSide": "right",
+      "toNode": "next_snip_builder",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_35",
+      "fromNode": "next_snip_builder",
+      "fromSide": "right",
+      "toNode": "next_snips",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_36",
+      "fromNode": "next_focus",
+      "fromSide": "right",
+      "toNode": "next_induce",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_37",
+      "fromNode": "next_snips",
+      "fromSide": "right",
+      "toNode": "next_induce",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_38",
+      "fromNode": "next_induce",
+      "fromSide": "right",
+      "toNode": "next_schema",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_39",
+      "fromNode": "next_supplied",
+      "fromSide": "right",
+      "toNode": "next_schema",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_40",
+      "fromNode": "next_focus",
+      "fromSide": "right",
+      "toNode": "next_relationship",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_41",
+      "fromNode": "next_snips",
+      "fromSide": "right",
+      "toNode": "next_relationship",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_42",
+      "fromNode": "next_schema",
+      "fromSide": "right",
+      "toNode": "next_relationship",
+      "toSide": "left",
+      "label": "used_by",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_43",
+      "fromNode": "next_relationship",
+      "fromSide": "right",
+      "toNode": "next_merge",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_44",
+      "fromNode": "next_merge",
+      "fromSide": "right",
+      "toNode": "next_compile",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_45",
+      "fromNode": "next_compile",
+      "fromSide": "right",
+      "toNode": "next_compact",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    },
+    {
+      "id": "edge_46",
+      "fromNode": "next_compact",
+      "fromSide": "right",
+      "toNode": "next_graph",
+      "toSide": "left",
+      "label": "created",
+      "color": "#64748b"
+    }
+  ]
+}
