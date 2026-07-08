@@ -65,6 +65,13 @@ export type ExtractionProgressEvent =
       stage: ExtractionProgressStage;
     }
   | {
+      type: 'stage_retry';
+      mode: ExtractionMode;
+      stage: ExtractionProgressStage;
+      attempt: number;
+      reason: string;
+    }
+  | {
       type: 'compile_start';
       mode: 'staged';
     }
@@ -170,6 +177,9 @@ export interface ProviderConfig {
 
   /** OpenAI-compatible response format override. */
   responseFormat?: 'json_object' | 'json_schema';
+
+  /** Per-request timeout in milliseconds (default: 240000). */
+  timeoutMs?: number;
 }
 
 export interface ExtractionOptions {

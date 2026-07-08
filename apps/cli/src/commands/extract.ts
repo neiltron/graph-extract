@@ -27,6 +27,7 @@ export interface ExtractArgs {
   maxNodes?: string;
   maxEdges?: string;
   maxTokens?: string;
+  requestTimeout?: string;
   pretty?: boolean;
 }
 
@@ -194,6 +195,11 @@ export function resolveProvider(args: ExtractArgs): ProviderConfig {
     args.responseFormat ?? process.env.GRAPH_EXTRACT_RESPONSE_FORMAT,
   );
 
+  const timeoutSeconds = resolvePositiveInteger(
+    args.requestTimeout ?? process.env.GRAPH_EXTRACT_REQUEST_TIMEOUT,
+    'request-timeout',
+  );
+
   return {
     type,
     baseUrl,
@@ -201,6 +207,7 @@ export function resolveProvider(args: ExtractArgs): ProviderConfig {
     apiKey,
     stop,
     responseFormat,
+    timeoutMs: timeoutSeconds !== undefined ? timeoutSeconds * 1000 : undefined,
   };
 }
 
@@ -295,6 +302,11 @@ function createProgressReporter(showProgress: boolean): ExtractorConfig['onProgr
         break;
       case 'stage_complete':
         writeStatus(`[graph-extract] ${formatStage(event.stage, true)}.`);
+        break;
+      case 'stage_retry':
+        writeStatus(
+          `[graph-extract] Retrying ${event.stage} stage (attempt ${event.attempt + 1}): ${event.reason}`,
+        );
         break;
       case 'compile_start':
         writeStatus('[graph-extract] Compiling final graph...');

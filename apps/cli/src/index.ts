@@ -30,6 +30,7 @@ Extract Options:
   --max-nodes <n>        Limit nodes in output
   --max-edges <n>        Limit edges in output
   --max-tokens <n>       Max completion tokens per model call (default: 16384)
+  --request-timeout <s>  Per-request timeout in seconds (default: 240)
 
 Canvas Options:
   -o, --output <file>    Output file (default: stdout)
@@ -44,6 +45,7 @@ Environment Variables:
   GRAPH_EXTRACT_RESPONSE_FORMAT  Response format override
   GRAPH_EXTRACT_MODE        Extraction mode override
   GRAPH_EXTRACT_MAX_TOKENS  Max completion tokens per model call
+  GRAPH_EXTRACT_REQUEST_TIMEOUT  Per-request timeout in seconds
   OPENAI_API_KEY            API key for OpenAI
   ANTHROPIC_API_KEY         API key for Anthropic
 
@@ -189,6 +191,10 @@ async function main(): Promise<number> {
         break;
       case '--max-tokens':
         extractArgs.maxTokens = next;
+        i++;
+        break;
+      case '--request-timeout':
+        extractArgs.requestTimeout = next;
         i++;
         break;
       case '-p':

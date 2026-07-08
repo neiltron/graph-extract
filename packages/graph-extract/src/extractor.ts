@@ -171,6 +171,13 @@ export class Extractor {
             break;
           }
 
+          emitProgress(onProgress, {
+            type: 'stage_retry',
+            mode: 'single',
+            stage: 'single',
+            attempt: attempt + 1,
+            reason: lastError.message,
+          });
           previousRaw = raw;
           continue;
         }
@@ -208,6 +215,7 @@ export class Extractor {
       temperature,
       maxTokens,
       maxRetries,
+      onProgress: options.onProgress,
     });
 
     emitProgress(options.onProgress, {
@@ -238,6 +246,7 @@ export class Extractor {
         temperature,
         maxTokens,
         maxRetries,
+        onProgress: options.onProgress,
       });
 
       relationTypes = relationSchemaStage.parsed.relationTypes;
@@ -276,6 +285,7 @@ export class Extractor {
         temperature,
         maxTokens,
         maxRetries,
+        onProgress: options.onProgress,
       });
 
       emitProgress(options.onProgress, {
@@ -328,6 +338,7 @@ export class Extractor {
     temperature: number;
     maxTokens: number;
     maxRetries: number;
+    onProgress?: ProgressCallback;
   }): Promise<StageResult<T>> {
     let lastError: ParseError | undefined;
     let raw = '';
@@ -359,6 +370,13 @@ export class Extractor {
             break;
           }
 
+          emitProgress(options.onProgress, {
+            type: 'stage_retry',
+            mode: 'staged',
+            stage: options.name,
+            attempt: attempt + 1,
+            reason: lastError.message,
+          });
           previousRaw = raw;
           continue;
         }
@@ -713,7 +731,10 @@ function createOpenAIClient(provider: ProviderConfig): OpenAI {
   return new OpenAI({
     baseURL,
     apiKey,
-    timeout: REQUEST_TIMEOUT_MS,
+    timeout: provider.timeoutMs ?? REQUEST_TIMEOUT_MS,
+    // The SDK's default of 2 silent retries turns a slow failure into a
+    // 3x-slower one with no signal; retries are handled explicitly above.
+    maxRetries: 0,
   });
 }
 

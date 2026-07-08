@@ -118,6 +118,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 Use `GRAPH_EXTRACT_API_KEY` or `--api-key` for OpenAI-compatible servers that require a token even on `localhost`.
 Use `GRAPH_EXTRACT_STOP` or repeated `--stop` flags to stop local chat-template delimiters like `<|im_end|>`.
 Use `GRAPH_EXTRACT_RESPONSE_FORMAT=json_schema` or `--response-format json_schema` for structured outputs on compatible OpenAI-style servers like LM Studio. In staged mode, `json_schema` applies stage-specific schemas for the entity and relationship passes.
+Use `--request-timeout` or `GRAPH_EXTRACT_REQUEST_TIMEOUT` (seconds, default 240) to bound each model call; the client no longer retries silently.
 Use `GRAPH_EXTRACT_MODE` or `--mode` to choose between `single` and `staged` extraction.
 Use `--max-nodes` and `--max-edges` to cap output size for smaller or less reliable local models.
 Use `GRAPH_EXTRACT_MAX_TOKENS` or `--max-tokens` to raise the per-call completion budget (default 16384); small models that loop or emit verbose JSON need headroom here, especially in staged mode's relationship pass.
