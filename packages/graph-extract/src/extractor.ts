@@ -39,7 +39,7 @@ import type {
   Schema,
   ValidationWarning,
 } from './types.js';
-import { validate } from './validate.js';
+import { enforceGraphLimits, validate } from './validate.js';
 
 const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_STAGED_TEMPERATURE = 0;
@@ -154,10 +154,11 @@ export class Extractor {
 
         const graph = parseGraph(raw);
         const validationResult = validate(graph);
+        const limited = enforceGraphLimits(validationResult.graph, schema);
 
         const result = {
-          graph: validationResult.graph,
-          warnings: [...validationResult.warnings, ...this.runWarnings],
+          graph: limited.graph,
+          warnings: [...validationResult.warnings, ...limited.warnings, ...this.runWarnings],
           raw,
           usage: response.usage,
         };
@@ -311,12 +312,14 @@ export class Extractor {
       relationships: relationshipStage.parsed.relationships,
     });
     const validationResult = validate(compiled.graph);
+    const limited = enforceGraphLimits(validationResult.graph, schema);
 
     const result: ExtractionResult = {
-      graph: validationResult.graph,
+      graph: limited.graph,
       warnings: [
         ...compiled.warnings,
         ...validationResult.warnings,
+        ...limited.warnings,
         ...this.runWarnings,
       ],
       raw: relationshipStage.raw,

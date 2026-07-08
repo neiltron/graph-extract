@@ -98,3 +98,64 @@ export function validate(graph: Graph): ValidationResult {
     },
   };
 }
+
+/**
+ * Deterministically trim a graph to the schema's maxNodes/maxEdges limits.
+ * Nodes are ranked by degree (edge count), preserving original order on ties
+ * since models tend to list salient entities first. Edges referencing trimmed
+ * nodes are dropped, then remaining edges are kept in original order up to the
+ * limit. Returns the trimmed graph plus a single summary warning when anything
+ * was removed.
+ */
+export function enforceGraphLimits(
+  graph: Graph,
+  limits: { maxNodes?: number; maxEdges?: number },
+): { graph: Graph; warnings: ValidationWarning[] } {
+  const { maxNodes, maxEdges } = limits;
+  const overNodes = maxNodes !== undefined && graph.nodes.length > maxNodes;
+  const overEdges = maxEdges !== undefined && graph.edges.length > maxEdges;
+
+  if (!overNodes && !overEdges) {
+    return { graph, warnings: [] };
+  }
+
+  let nodes = graph.nodes;
+  let edges = graph.edges;
+
+  if (overNodes && maxNodes !== undefined) {
+    const degree = new Map<string, number>();
+    for (const edge of edges) {
+      degree.set(edge.source, (degree.get(edge.source) ?? 0) + 1);
+      degree.set(edge.target, (degree.get(edge.target) ?? 0) + 1);
+    }
+
+    const ranked = nodes
+      .map((node, index) => ({ node, index, degree: degree.get(node.id) ?? 0 }))
+      .sort((a, b) => b.degree - a.degree || a.index - b.index)
+      .slice(0, maxNodes)
+      .sort((a, b) => a.index - b.index);
+
+    nodes = ranked.map((entry) => entry.node);
+    const keptIds = new Set(nodes.map((node) => node.id));
+    edges = edges.filter((edge) => keptIds.has(edge.source) && keptIds.has(edge.target));
+  }
+
+  if (maxEdges !== undefined && edges.length > maxEdges) {
+    edges = edges.slice(0, maxEdges);
+  }
+
+  const warnings: ValidationWarning[] = [
+    {
+      type: 'graph_truncated',
+      message: `Trimmed graph from ${graph.nodes.length} to ${nodes.length} nodes and ${graph.edges.length} to ${edges.length} edges to satisfy limits`,
+      details: {
+        maxNodes,
+        maxEdges,
+        originalNodeCount: graph.nodes.length,
+        originalEdgeCount: graph.edges.length,
+      },
+    },
+  ];
+
+  return { graph: { nodes, edges }, warnings };
+}

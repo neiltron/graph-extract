@@ -262,6 +262,7 @@ export interface ValidationWarning {
     | 'removed_edge'
     | 'unresolved_relationship_source'
     | 'unresolved_relationship_target'
+    | 'graph_truncated'
     | 'response_format_fallback';
   message: string;
   edgeId?: string;
