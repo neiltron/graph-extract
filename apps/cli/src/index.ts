@@ -29,6 +29,7 @@ Extract Options:
   --mode <type>          Extraction mode (single or staged)
   --max-nodes <n>        Limit nodes in output
   --max-edges <n>        Limit edges in output
+  --max-tokens <n>       Max completion tokens per model call (default: 16384)
 
 Canvas Options:
   -o, --output <file>    Output file (default: stdout)
@@ -42,6 +43,7 @@ Environment Variables:
   GRAPH_EXTRACT_STOP        Comma-separated stop sequences
   GRAPH_EXTRACT_RESPONSE_FORMAT  Response format override
   GRAPH_EXTRACT_MODE        Extraction mode override
+  GRAPH_EXTRACT_MAX_TOKENS  Max completion tokens per model call
   OPENAI_API_KEY            API key for OpenAI
   ANTHROPIC_API_KEY         API key for Anthropic
 
@@ -183,6 +185,10 @@ async function main(): Promise<number> {
         break;
       case '--max-edges':
         extractArgs.maxEdges = next;
+        i++;
+        break;
+      case '--max-tokens':
+        extractArgs.maxTokens = next;
         i++;
         break;
       case '-p':

@@ -26,6 +26,7 @@ export interface ExtractArgs {
   mode?: string;
   maxNodes?: string;
   maxEdges?: string;
+  maxTokens?: string;
   pretty?: boolean;
 }
 
@@ -115,10 +116,22 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
       );
     }
 
+    let maxTokens: number | undefined;
+    try {
+      maxTokens = resolvePositiveInteger(
+        args.maxTokens ?? process.env.GRAPH_EXTRACT_MAX_TOKENS,
+        'max-tokens',
+      );
+    } catch (e) {
+      writeError(`Error: ${(e as Error).message}`);
+      return EXIT_CONFIG_ERROR;
+    }
+
     const config: ExtractorConfig = {
       provider,
       schema,
       mode,
+      maxTokens,
       onProgress: createProgressReporter(showProgress),
     };
 

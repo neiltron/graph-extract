@@ -142,7 +142,7 @@ export interface ExtractorConfig {
   /** Temperature for LLM (default: 0) */
   temperature?: number;
 
-  /** Max tokens for response (default: 4096) */
+  /** Max tokens for response (default: 16384) */
   maxTokens?: number;
 
   /** Number of retries on parse failure (default: 2) */

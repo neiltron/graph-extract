@@ -42,7 +42,7 @@ import { validate } from './validate.js';
 
 const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_STAGED_TEMPERATURE = 0;
-const DEFAULT_MAX_TOKENS = 4096;
+const DEFAULT_MAX_TOKENS = 16384;
 const DEFAULT_MAX_RETRIES = 2;
 const REQUEST_TIMEOUT_MS = 240000;
 
