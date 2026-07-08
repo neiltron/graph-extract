@@ -117,7 +117,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 Use `GRAPH_EXTRACT_API_KEY` or `--api-key` for OpenAI-compatible servers that require a token even on `localhost`.
 Use `GRAPH_EXTRACT_STOP` or repeated `--stop` flags to stop local chat-template delimiters like `<|im_end|>`.
-Use `GRAPH_EXTRACT_RESPONSE_FORMAT=json_schema` or `--response-format json_schema` for structured outputs on compatible OpenAI-style servers like LM Studio. In staged mode, `json_schema` applies stage-specific schemas for the entity and relationship passes.
+Structured outputs (`json_schema`) are the default for the `lmstudio` provider: stage-specific schemas constrain entity types, relation types, entity/snippet IDs, and array sizes at decode time, which small local models need for reliable output. If the server rejects `response_format`, the extractor falls back to plain output with a warning. Use `--response-format text` (or `GRAPH_EXTRACT_RESPONSE_FORMAT=text`) to disable, or `json_object`/`json_schema` to set it explicitly for other OpenAI-compatible providers.
 Use `--request-timeout` or `GRAPH_EXTRACT_REQUEST_TIMEOUT` (seconds, default 240) to bound each model call; the client no longer retries silently.
 Use `GRAPH_EXTRACT_MODE` or `--mode` to choose between `single` and `staged` extraction.
 Use `--max-nodes` and `--max-edges` to cap output size for smaller or less reliable local models.

@@ -175,8 +175,13 @@ export interface ProviderConfig {
   /** Stop sequences to send to OpenAI-compatible backends. */
   stop?: string[];
 
-  /** OpenAI-compatible response format override. */
-  responseFormat?: 'json_object' | 'json_schema';
+  /**
+   * OpenAI-compatible response format override.
+   * Defaults to 'json_schema' for the lmstudio provider; use 'text' to disable
+   * structured output entirely. If the server rejects response_format, the
+   * extractor falls back to plain text output and records a warning.
+   */
+  responseFormat?: 'json_object' | 'json_schema' | 'text';
 
   /** Per-request timeout in milliseconds (default: 240000). */
   timeoutMs?: number;
@@ -256,7 +261,8 @@ export interface ValidationWarning {
     | 'invalid_edge_target'
     | 'removed_edge'
     | 'unresolved_relationship_source'
-    | 'unresolved_relationship_target';
+    | 'unresolved_relationship_target'
+    | 'response_format_fallback';
   message: string;
   edgeId?: string;
   details?: Record<string, unknown>;

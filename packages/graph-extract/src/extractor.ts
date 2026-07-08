@@ -37,6 +37,7 @@ import type {
   ExtractorConfig,
   ProviderConfig,
   Schema,
+  ValidationWarning,
 } from './types.js';
 import { validate } from './validate.js';
 
@@ -71,6 +72,10 @@ type ProgressCallback = (event: ExtractionProgressEvent) => void;
 export class Extractor {
   private client: OpenAI;
   private config: ExtractorConfig;
+  /** Set after the provider rejects response_format; later calls skip it. */
+  private responseFormatUnsupported = false;
+  /** Warnings accumulated outside validation (e.g. response_format fallback). */
+  private runWarnings: ValidationWarning[] = [];
 
   constructor(config: ExtractorConfig) {
     this.config = config;
@@ -85,6 +90,7 @@ export class Extractor {
       throw new GraphExtractError('Input text cannot be empty');
     }
 
+    this.runWarnings = [];
     const requestedSchema = options?.schema ?? this.config.schema;
     const schema = resolveSchema(requestedSchema);
     const mode = resolveExtractionMode(options?.mode ?? this.config.mode);
@@ -151,7 +157,7 @@ export class Extractor {
 
         const result = {
           graph: validationResult.graph,
-          warnings: validationResult.warnings,
+          warnings: [...validationResult.warnings, ...this.runWarnings],
           raw,
           usage: response.usage,
         };
@@ -308,7 +314,11 @@ export class Extractor {
 
     const result: ExtractionResult = {
       graph: validationResult.graph,
-      warnings: [...compiled.warnings, ...validationResult.warnings],
+      warnings: [
+        ...compiled.warnings,
+        ...validationResult.warnings,
+        ...this.runWarnings,
+      ],
       raw: relationshipStage.raw,
       usage: aggregateUsage(entityStage.usage, relationSchemaStage?.usage, relationshipStage.usage),
     };
@@ -388,11 +398,52 @@ export class Extractor {
     throw lastError ?? new ParseError(`Failed to parse ${options.name} stage response`, raw);
   }
 
+  /**
+   * Effective response format: explicit config wins; lmstudio defaults to
+   * json_schema; 'text' (or a previous provider rejection) disables it.
+   */
+  private resolveResponseFormat(): 'json_object' | 'json_schema' | undefined {
+    if (this.responseFormatUnsupported) {
+      return undefined;
+    }
+
+    const configured =
+      this.config.provider.responseFormat ??
+      (this.config.provider.type === 'lmstudio' ? 'json_schema' : undefined);
+
+    return configured === 'text' ? undefined : configured;
+  }
+
   private async callLLM(
     prompt: string,
     temperature: number,
     maxTokens: number,
     responseSchema: ResponseSchemaDefinition,
+  ): Promise<LLMResponse> {
+    const responseFormat = this.resolveResponseFormat();
+
+    try {
+      return await this.performCompletion(prompt, temperature, maxTokens, responseSchema, responseFormat);
+    } catch (e) {
+      if (responseFormat && isResponseFormatRejection(e)) {
+        this.responseFormatUnsupported = true;
+        this.runWarnings.push({
+          type: 'response_format_fallback',
+          message: `Provider rejected response_format "${responseFormat}"; falling back to plain text output`,
+        });
+        return await this.performCompletion(prompt, temperature, maxTokens, responseSchema, undefined);
+      }
+
+      throw e;
+    }
+  }
+
+  private async performCompletion(
+    prompt: string,
+    temperature: number,
+    maxTokens: number,
+    responseSchema: ResponseSchemaDefinition,
+    responseFormat: 'json_object' | 'json_schema' | undefined,
   ): Promise<LLMResponse> {
     try {
       const request: ChatCompletionCreateParamsNonStreaming = {
@@ -406,11 +457,8 @@ export class Extractor {
         request.stop = this.config.provider.stop;
       }
 
-      if (this.config.provider.responseFormat) {
-        request.response_format = buildResponseFormat(
-          this.config.provider.responseFormat,
-          responseSchema,
-        );
+      if (responseFormat) {
+        request.response_format = buildResponseFormat(responseFormat, responseSchema);
       }
 
       const response = await this.client.chat.completions.create(request);
@@ -736,6 +784,34 @@ function createOpenAIClient(provider: ProviderConfig): OpenAI {
     // 3x-slower one with no signal; retries are handled explicitly above.
     maxRetries: 0,
   });
+}
+
+/**
+ * Detect a server rejecting the response_format parameter (as opposed to a
+ * transient failure): client-error statuses, or messages naming the feature.
+ */
+function isResponseFormatRejection(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const original = error instanceof ProviderError ? error.originalError : undefined;
+  for (const candidate of [error, error.cause, original]) {
+    if (!(candidate instanceof Error)) {
+      continue;
+    }
+
+    const status = (candidate as { status?: unknown }).status;
+    if (typeof status === 'number' && [400, 404, 415, 422, 501].includes(status)) {
+      return true;
+    }
+
+    if (/response_format|json_schema|structured output/i.test(candidate.message)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function getBaseURL(provider: ProviderConfig): string | undefined {

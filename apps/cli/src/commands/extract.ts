@@ -216,12 +216,12 @@ function resolveResponseFormat(value?: string): ProviderConfig['responseFormat']
     return undefined;
   }
 
-  if (value === 'json_object' || value === 'json_schema') {
+  if (value === 'json_object' || value === 'json_schema' || value === 'text') {
     return value;
   }
 
   throw new GraphExtractError(
-    `Unsupported response format: ${value}. Supported values: json_object, json_schema`,
+    `Unsupported response format: ${value}. Supported values: json_object, json_schema, text`,
   );
 }
 

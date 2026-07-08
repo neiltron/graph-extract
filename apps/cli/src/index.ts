@@ -25,7 +25,8 @@ Extract Options:
   -m, --model <name>     Model identifier
   --api-key <key>        Provider API key
   --stop <token>         Stop sequence (repeatable)
-  --response-format <type>  Response format (json_schema or json_object)
+  --response-format <type>  Response format (json_schema, json_object, or text;
+                         default: json_schema for lmstudio)
   --mode <type>          Extraction mode (single or staged)
   --max-nodes <n>        Limit nodes in output
   --max-edges <n>        Limit edges in output
