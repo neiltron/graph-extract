@@ -84,16 +84,24 @@ function splitIntoSnippetCandidates(text: string, maxSnippetChars: number): stri
     .filter(Boolean);
 
   const snippets: string[] = [];
+  // Last sentence of the previous block, so a paragraph-initial anaphoric
+  // sentence ("Launched atop a Saturn V rocket...") can still reach its
+  // antecedent across the paragraph boundary.
+  let previousBlockTail: string | undefined;
 
   for (const block of blocks) {
+    const sentences = splitIntoSentences(block);
+
     if (block.length <= maxSnippetChars) {
-      snippets.push(block);
+      const snippet = prependAntecedent(block, previousBlockTail, maxSnippetChars);
+      snippets.push(snippet);
+      previousBlockTail = sentences[sentences.length - 1] ?? previousBlockTail;
       continue;
     }
 
-    const sentences = splitIntoSentences(block);
     if (sentences.length <= 1) {
       snippets.push(block.slice(0, maxSnippetChars));
+      previousBlockTail = sentences[0] ?? previousBlockTail;
       continue;
     }
 
@@ -103,7 +111,8 @@ function splitIntoSnippetCandidates(text: string, maxSnippetChars: number): stri
         continue;
       }
 
-      let snippet = current;
+      let snippet = prependAntecedent(current, sentences[i - 1] ?? previousBlockTail, maxSnippetChars);
+
       const next = sentences[i + 1];
       if (next && snippet.length < Math.floor(maxSnippetChars * 0.6)) {
         const combined = `${snippet} ${next}`.trim();
@@ -114,9 +123,47 @@ function splitIntoSnippetCandidates(text: string, maxSnippetChars: number): stri
 
       snippets.push(snippet.slice(0, maxSnippetChars));
     }
+
+    previousBlockTail = sentences[sentences.length - 1] ?? previousBlockTail;
   }
 
   return dedupeStrings(snippets);
+}
+
+const ANAPHORIC_OPENERS =
+  /^(?:"[^"]{0,80}"\s+)?(?:They|He|She|It|Both|Together|These|Those|This|That|Their|His|Her|Its|The (?:two|three|four|pair|crew|group|team|both))\b/;
+// A sentence-initial past participle followed by a lowercase word reads as an
+// elided subject ("Launched atop...", "Founded in..."). Proper names ending in
+// -ed followed by a capitalized word do not match.
+const ELIDED_SUBJECT_OPENER = /^[A-Z][a-z]+ed\s+[a-z]/;
+
+function startsWithAnaphoricSubject(sentence: string): boolean {
+  return ANAPHORIC_OPENERS.test(sentence) || ELIDED_SUBJECT_OPENER.test(sentence);
+}
+
+/**
+ * Anaphora window: a sentence whose subject is a pronoun ("Together they
+ * spent...") or elided ("Launched atop a Saturn V rocket...") carries
+ * relations whose named antecedent lives in the previous sentence. Prepend it
+ * so those entities are present and citable in the snippet; when both don't
+ * fit, keep the antecedent and truncate the current sentence's tail — the
+ * subject linkage is worth more than the tail of a long sentence.
+ */
+function prependAntecedent(
+  current: string,
+  previous: string | undefined,
+  maxSnippetChars: number,
+): string {
+  if (!previous || !startsWithAnaphoricSubject(current)) {
+    return current;
+  }
+
+  // Leave at least ~40% of the budget for the sentence itself.
+  if (previous.length > Math.floor(maxSnippetChars * 0.6)) {
+    return current;
+  }
+
+  return `${previous} ${current}`.trim().slice(0, maxSnippetChars);
 }
 
 function splitIntoSentences(block: string): string[] {
