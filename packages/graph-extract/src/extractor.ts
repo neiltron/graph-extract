@@ -40,7 +40,7 @@ import type {
   Schema,
   ValidationWarning,
 } from './types.js';
-import { enforceGraphLimits, validate } from './validate.js';
+import { compactGraph, enforceGraphLimits, validate } from './validate.js';
 
 const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_STAGED_TEMPERATURE = 0;
@@ -156,10 +156,18 @@ export class Extractor {
         const graph = parseGraph(raw);
         const validationResult = validate(graph);
         const limited = enforceGraphLimits(validationResult.graph, schema);
+        const compacted = compactGraph(limited.graph, {
+          pruneIsolatedNodes: schema.pruneIsolatedNodes,
+        });
 
         const result = {
-          graph: limited.graph,
-          warnings: [...validationResult.warnings, ...limited.warnings, ...this.runWarnings],
+          graph: compacted.graph,
+          warnings: [
+            ...validationResult.warnings,
+            ...limited.warnings,
+            ...compacted.warnings,
+            ...this.runWarnings,
+          ],
           raw,
           usage: response.usage,
         };
@@ -326,13 +334,17 @@ export class Extractor {
     });
     const validationResult = validate(compiled.graph);
     const limited = enforceGraphLimits(validationResult.graph, schema);
+    const compacted = compactGraph(limited.graph, {
+      pruneIsolatedNodes: schema.pruneIsolatedNodes,
+    });
 
     const result: ExtractionResult = {
-      graph: limited.graph,
+      graph: compacted.graph,
       warnings: [
         ...compiled.warnings,
         ...validationResult.warnings,
         ...limited.warnings,
+        ...compacted.warnings,
         ...this.runWarnings,
       ],
       raw: relationshipStage.raw,
@@ -413,6 +425,7 @@ export class Extractor {
 
     throw lastError ?? new ParseError(`Failed to parse ${options.name} stage response`, raw);
   }
+
   /**
    * v3 relationship extraction: one small call per evidence snippet, merged.
    * Bounds each call's output (no budget for looping), keeps subject/object

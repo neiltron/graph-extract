@@ -102,6 +102,9 @@ export interface Schema {
 
   /** Maximum number of edges to return. */
   maxEdges?: number;
+
+  /** Remove nodes with no edges from the final graph (default: false). */
+  pruneIsolatedNodes?: boolean;
 }
 
 export const DEFAULT_ENTITY_TYPES: EntityType[] = [
@@ -272,6 +275,7 @@ export interface ValidationWarning {
     | 'unresolved_relationship_source'
     | 'unresolved_relationship_target'
     | 'graph_truncated'
+    | 'isolated_nodes'
     | 'snippet_relationship_failed'
     | 'response_format_fallback';
   message: string;

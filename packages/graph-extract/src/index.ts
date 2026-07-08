@@ -1,7 +1,7 @@
 // Main API
 export { extract, createExtractor } from './extract.js';
 export { Extractor } from './extractor.js';
-export { validate, enforceGraphLimits } from './validate.js';
+export { validate, enforceGraphLimits, compactGraph } from './validate.js';
 
 // Types
 export type {

@@ -34,6 +34,7 @@ Extract Options:
   --max-edges <n>        Limit edges in output
   --max-tokens <n>       Max completion tokens per model call (default: 16384)
   --request-timeout <s>  Per-request timeout in seconds (default: 240)
+  --prune-isolated       Remove nodes with no edges from the final graph
 
 Canvas Options:
   -o, --output <file>    Output file (default: stdout)
@@ -50,6 +51,7 @@ Environment Variables:
   GRAPH_EXTRACT_RELATIONSHIP_SCOPE  Staged relationship scope (global or snippet)
   GRAPH_EXTRACT_MAX_TOKENS  Max completion tokens per model call
   GRAPH_EXTRACT_REQUEST_TIMEOUT  Per-request timeout in seconds
+  GRAPH_EXTRACT_PRUNE_ISOLATED  Set to 1/true to drop nodes with no edges
   OPENAI_API_KEY            API key for OpenAI
   ANTHROPIC_API_KEY         API key for Anthropic
 
@@ -204,6 +206,9 @@ async function main(): Promise<number> {
       case '--request-timeout':
         extractArgs.requestTimeout = next;
         i++;
+        break;
+      case '--prune-isolated':
+        extractArgs.pruneIsolated = true;
         break;
       case '-p':
       case '--pretty':

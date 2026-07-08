@@ -29,6 +29,7 @@ export interface ExtractArgs {
   maxEdges?: string;
   maxTokens?: string;
   requestTimeout?: string;
+  pruneIsolated?: boolean;
   pretty?: boolean;
 }
 
@@ -95,6 +96,10 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
             typeof schemaData.instructions === 'string' ? schemaData.instructions : undefined,
           maxNodes: typeof schemaData.maxNodes === 'number' ? schemaData.maxNodes : undefined,
           maxEdges: typeof schemaData.maxEdges === 'number' ? schemaData.maxEdges : undefined,
+          pruneIsolatedNodes:
+            typeof schemaData.pruneIsolatedNodes === 'boolean'
+              ? schemaData.pruneIsolatedNodes
+              : undefined,
         };
       } catch (e) {
         writeError(`Error: ${(e as Error).message}`);
@@ -285,8 +290,10 @@ function resolveStopSequences(
 function applySchemaOverrides(schema: Schema | undefined, args: ExtractArgs): Schema | undefined {
   const maxNodes = resolvePositiveInteger(args.maxNodes, 'max-nodes');
   const maxEdges = resolvePositiveInteger(args.maxEdges, 'max-edges');
+  const pruneIsolated =
+    args.pruneIsolated || isTruthyEnv(process.env.GRAPH_EXTRACT_PRUNE_ISOLATED) ? true : undefined;
 
-  if (maxNodes === undefined && maxEdges === undefined) {
+  if (maxNodes === undefined && maxEdges === undefined && pruneIsolated === undefined) {
     return schema;
   }
 
@@ -294,7 +301,12 @@ function applySchemaOverrides(schema: Schema | undefined, args: ExtractArgs): Sc
     ...schema,
     maxNodes: maxNodes ?? schema?.maxNodes,
     maxEdges: maxEdges ?? schema?.maxEdges,
+    pruneIsolatedNodes: pruneIsolated ?? schema?.pruneIsolatedNodes,
   };
+}
+
+function isTruthyEnv(value: string | undefined): boolean {
+  return value === '1' || value === 'true' || value === 'yes';
 }
 
 function resolvePositiveInteger(value: string | undefined, name: string): number | undefined {
