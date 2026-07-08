@@ -24,6 +24,7 @@ export interface ExtractArgs {
   stop?: string[];
   responseFormat?: string;
   mode?: string;
+  relationshipScope?: string;
   maxNodes?: string;
   maxEdges?: string;
   maxTokens?: string;
@@ -45,8 +46,12 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
     const showProgress = process.stderr.isTTY;
 
     let mode: ExtractionMode;
+    let relationshipScope: 'global' | 'snippet' | undefined;
     try {
       mode = resolveMode(args.mode ?? process.env.GRAPH_EXTRACT_MODE);
+      relationshipScope = resolveRelationshipScope(
+        args.relationshipScope ?? process.env.GRAPH_EXTRACT_RELATIONSHIP_SCOPE,
+      );
     } catch (e) {
       writeError(`Error: ${(e as Error).message}`);
       return EXIT_CONFIG_ERROR;
@@ -132,6 +137,7 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
       provider,
       schema,
       mode,
+      relationshipScope,
       maxTokens,
       onProgress: createProgressReporter(showProgress),
     };
@@ -222,6 +228,20 @@ function resolveResponseFormat(value?: string): ProviderConfig['responseFormat']
 
   throw new GraphExtractError(
     `Unsupported response format: ${value}. Supported values: json_object, json_schema, text`,
+  );
+}
+
+export function resolveRelationshipScope(value?: string): 'global' | 'snippet' | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  if (value === 'global' || value === 'snippet') {
+    return value;
+  }
+
+  throw new GraphExtractError(
+    `Unsupported relationship scope: ${value}. Supported values: global, snippet`,
   );
 }
 

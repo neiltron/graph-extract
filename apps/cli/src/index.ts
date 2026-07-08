@@ -28,6 +28,8 @@ Extract Options:
   --response-format <type>  Response format (json_schema, json_object, or text;
                          default: json_schema for lmstudio)
   --mode <type>          Extraction mode (single or staged)
+  --relationship-scope <s>  Staged relationship pass: global (one call, default)
+                         or snippet (one small call per evidence snippet)
   --max-nodes <n>        Limit nodes in output
   --max-edges <n>        Limit edges in output
   --max-tokens <n>       Max completion tokens per model call (default: 16384)
@@ -45,6 +47,7 @@ Environment Variables:
   GRAPH_EXTRACT_STOP        Comma-separated stop sequences
   GRAPH_EXTRACT_RESPONSE_FORMAT  Response format override
   GRAPH_EXTRACT_MODE        Extraction mode override
+  GRAPH_EXTRACT_RELATIONSHIP_SCOPE  Staged relationship scope (global or snippet)
   GRAPH_EXTRACT_MAX_TOKENS  Max completion tokens per model call
   GRAPH_EXTRACT_REQUEST_TIMEOUT  Per-request timeout in seconds
   OPENAI_API_KEY            API key for OpenAI
@@ -180,6 +183,10 @@ async function main(): Promise<number> {
         break;
       case '--mode':
         extractArgs.mode = next;
+        i++;
+        break;
+      case '--relationship-scope':
+        extractArgs.relationshipScope = next;
         i++;
         break;
       case '--max-nodes':

@@ -23,6 +23,7 @@ import {
 import type {
   CatalogEntity,
   EntityExtraction,
+  ExtractedRelationship,
   RelationSchemaExtraction,
   RelationTypeDefinition,
   RelationshipExtraction,
@@ -279,21 +280,33 @@ export class Extractor {
         stage: 'relationship',
       });
 
-      relationshipStage = await this.runStage<RelationshipExtraction>({
-        name: 'relationship',
-        prompt: buildRelationshipPrompt(focusedCatalog, relationTypes, snippets, schema),
-        responseSchema: buildRelationshipResponseSchema(
-          relationTypes,
-          focusedCatalog,
-          snippets,
-          schema,
-        ),
-        parser: parseRelationshipExtraction,
-        temperature,
-        maxTokens,
-        maxRetries,
-        onProgress: options.onProgress,
-      });
+      relationshipStage =
+        this.config.relationshipScope === 'snippet'
+          ? await this.runSnippetLocalRelationships({
+              catalog: focusedCatalog,
+              relationTypes,
+              snippets,
+              schema,
+              temperature,
+              maxTokens,
+              maxRetries,
+              onProgress: options.onProgress,
+            })
+          : await this.runStage<RelationshipExtraction>({
+              name: 'relationship',
+              prompt: buildRelationshipPrompt(focusedCatalog, relationTypes, snippets, schema),
+              responseSchema: buildRelationshipResponseSchema(
+                relationTypes,
+                focusedCatalog,
+                snippets,
+                schema,
+              ),
+              parser: parseRelationshipExtraction,
+              temperature,
+              maxTokens,
+              maxRetries,
+              onProgress: options.onProgress,
+            });
 
       emitProgress(options.onProgress, {
         type: 'stage_complete',
@@ -399,6 +412,85 @@ export class Extractor {
     }
 
     throw lastError ?? new ParseError(`Failed to parse ${options.name} stage response`, raw);
+  }
+  /**
+   * v3 relationship extraction: one small call per evidence snippet, merged.
+   * Bounds each call's output (no budget for looping), keeps subject/object
+   * decisions local to a single sentence, and degrades gracefully — a snippet
+   * whose extraction fails is skipped with a warning instead of failing the run.
+   * Cross-snippet duplicates are collapsed later by graph compilation.
+   */
+  private async runSnippetLocalRelationships(input: {
+    catalog: CatalogEntity[];
+    relationTypes: RelationTypeDefinition[];
+    snippets: RelationshipSnippet[];
+    schema: Schema;
+    temperature: number;
+    maxTokens: number;
+    maxRetries: number;
+    onProgress?: ProgressCallback;
+  }): Promise<StageResult<RelationshipExtraction>> {
+    const relationships: ExtractedRelationship[] = [];
+    const raws: string[] = [];
+    let usage: Usage | undefined;
+
+    // The global edge cap is enforced deterministically after compile; a
+    // per-snippet cap would just distort each local decision.
+    const snippetSchema: Schema = { ...input.schema, maxEdges: undefined };
+
+    for (const snippet of input.snippets) {
+      if (snippet.entityIds.length < 2) {
+        continue; // a relationship needs two catalog entities present in the snippet
+      }
+
+      const snippetCatalog = input.catalog.filter((entity) =>
+        snippet.entityIds.includes(entity.id),
+      );
+
+      try {
+        const stage = await this.runStage<RelationshipExtraction>({
+          name: 'relationship',
+          prompt: buildRelationshipPrompt(
+            snippetCatalog,
+            input.relationTypes,
+            [snippet],
+            snippetSchema,
+          ),
+          responseSchema: buildRelationshipResponseSchema(
+            input.relationTypes,
+            snippetCatalog,
+            [snippet],
+            snippetSchema,
+          ),
+          parser: parseRelationshipExtraction,
+          temperature: input.temperature,
+          maxTokens: input.maxTokens,
+          maxRetries: input.maxRetries,
+          onProgress: input.onProgress,
+        });
+
+        relationships.push(...stage.parsed.relationships);
+        raws.push(stage.raw);
+        usage = aggregateUsage(usage, stage.usage);
+      } catch (e) {
+        if (e instanceof ParseError) {
+          this.runWarnings.push({
+            type: 'snippet_relationship_failed',
+            message: `Relationship extraction failed for snippet ${snippet.id}; its relations were skipped`,
+            details: { snippetId: snippet.id, error: e.message },
+          });
+          continue;
+        }
+
+        throw e;
+      }
+    }
+
+    return {
+      parsed: { relationships },
+      raw: raws.join('\n'),
+      usage,
+    };
   }
 
   /**

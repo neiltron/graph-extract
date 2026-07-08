@@ -146,6 +146,15 @@ export interface ExtractorConfig {
   /** Extraction mode (default: single) */
   mode?: ExtractionMode;
 
+  /**
+   * Staged mode only: scope of the relationship extraction stage.
+   * 'global' (default) sends every evidence snippet in one call;
+   * 'snippet' makes one small call per snippet and merges the results,
+   * which bounds per-call output and keeps subject/object decisions local
+   * to a single sentence.
+   */
+  relationshipScope?: 'global' | 'snippet';
+
   /** Temperature for LLM (default: 0) */
   temperature?: number;
 
@@ -263,6 +272,7 @@ export interface ValidationWarning {
     | 'unresolved_relationship_source'
     | 'unresolved_relationship_target'
     | 'graph_truncated'
+    | 'snippet_relationship_failed'
     | 'response_format_fallback';
   message: string;
   edgeId?: string;
