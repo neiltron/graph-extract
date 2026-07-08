@@ -67,11 +67,11 @@ Return ONLY valid JSON with this exact structure:
 RULES:
 1. Output ONLY valid JSON - no markdown code blocks, no explanation, no preamble
 2. Return 3 to 8 relation types that best fit the document's explicit relationships
-3. Relation names must be lowercase_with_underscores
+3. Relation names must be lowercase_with_underscores verb phrases that read as a sentence between two entities (works_for, crewed_by, part_of) - never noun phrases (crew_member, landing_location)
 4. Prefer generic, reusable semantic labels like uses, improves_upon, compared_to, evaluated_on, trained_on, implemented_with, member_of, produced_by when clearly supported
 5. Avoid near-duplicate relation names
 6. Always include related_to as a fallback relation
-7. Descriptions should be short and explain when the relation should be used in this document
+7. Descriptions must be short and state the direction as "use when SOURCE <verb> TARGET", e.g. member_of: use when the source entity belongs to the target entity
 8. Do not invent entity-specific relation names
 
 JSON:`;
@@ -113,15 +113,17 @@ RULES:
 1. Output ONLY valid JSON - no markdown code blocks, no explanation, no preamble
 2. Use only the listed relationship types
 3. Use only entity IDs from the entity catalog as relationship endpoints
-4. Every relationship must cite one supporting snippet_id from the evidence snippets list
-5. source_id and target_id must both appear in the cited snippet's entity_ids list
-6. Choose the most semantically accurate listed relationship type; if none clearly fit, use related_to
-7. Include only relationships explicitly stated in a snippet
-8. Prefer precision over recall
-9. Do not invent relationships that require combining evidence from multiple snippets
-10. If no explicit relationships are present, return an empty relationships array
-11. Keep each mention short and grounded in the cited snippet text
-${schema.maxEdges ? `12. Return at most ${schema.maxEdges} relationships` : ''}
+4. Direction matters: source_id is the subject and target_id is the object, so the triple must read as a true sentence "<source> <relation> <target>". If Alice works at Acme Corp, output source_id = Alice's ID and target_id = Acme Corp's ID, because "Alice works_for Acme Corp" is true and "Acme Corp works_for Alice" is not
+5. Read each relationship back as that sentence before emitting it; if it only makes sense with the entities swapped, swap source_id and target_id
+6. Every relationship must cite one supporting snippet_id from the evidence snippets list
+7. source_id and target_id must both appear in the cited snippet's entity_ids list
+8. Choose the most semantically accurate listed relationship type; if none clearly fit, use related_to
+9. Include only relationships explicitly stated in a snippet
+10. Prefer precision over recall
+11. Do not invent relationships that require combining evidence from multiple snippets
+12. If no explicit relationships are present, return an empty relationships array
+13. Keep each mention short and grounded in the cited snippet text
+${schema.maxEdges ? `14. Return at most ${schema.maxEdges} relationships` : ''}
 
 JSON:`;
 }
@@ -261,6 +263,7 @@ function buildRelationTypeList(relationTypes: RelationTypeDefinition[]): string 
   return JSON.stringify(
     relationTypes.map((relationType) => ({
       name: relationType.name,
+      reads: `SOURCE ${relationType.name} TARGET`,
       ...(relationType.description ? { description: relationType.description } : {}),
     })),
     null,

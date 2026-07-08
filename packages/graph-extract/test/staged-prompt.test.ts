@@ -37,6 +37,8 @@ describe('staged prompts', () => {
     expect(prompt).toContain('"id": "E1"');
     expect(prompt).toContain('"id": "S1"');
     expect(prompt).toContain('Always include related_to as a fallback relation');
+    expect(prompt).toContain('verb phrases');
+    expect(prompt).toContain('never noun phrases');
   });
 
   test('buildRelationshipPrompt includes id-based entities, schema, and snippet rules', () => {
@@ -60,6 +62,8 @@ describe('staged prompts', () => {
     expect(prompt).toContain('EVIDENCE SNIPPETS:');
     expect(prompt).toContain('"id": "E1"');
     expect(prompt).toContain('"name": "works_for"');
+    expect(prompt).toContain('"reads": "SOURCE works_for TARGET"');
+    expect(prompt).toContain('source_id is the subject and target_id is the object');
     expect(prompt).toContain(
       'Use only entity IDs from the entity catalog as relationship endpoints',
     );
