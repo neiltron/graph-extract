@@ -22,7 +22,7 @@ from pathlib import Path
 EXP = Path(__file__).resolve().parents[1]
 REPO = EXP.parents[1]
 DOCS = EXP / 'data' / 'test-docs'
-REFS = EXP / 'data' / 'teacher-out-test'
+REFS = EXP / 'data' / 'teacher-out-test'  # overridable via --refs
 RESULTS = EXP / 'data' / 'results'
 WORKLOG = [sys.executable, str(EXP / 'bin' / 'worklog.py')]
 
@@ -113,21 +113,24 @@ def main() -> int:
     ap.add_argument('--tag', required=True)
     ap.add_argument('--adapter-path')
     ap.add_argument('--max-tokens', type=int, default=4096)
+    ap.add_argument('--refs', default=str(REFS))
     args = ap.parse_args()
+
+    refs_dir = Path(args.refs)
 
     from mlx_lm import generate, load
 
     RESULTS.mkdir(parents=True, exist_ok=True)
     eval_id = f'eval-{args.tag}'
     wl('start', '--id', eval_id, '--parent', 'distill', '--actor', 'mlx:eval',
-       '--kind', 'eval', '--label', f'Eval {args.tag} on held-out test docs',
+       '--kind', 'eval', '--label', f'Eval {args.tag} vs {refs_dir.name}',
        '--detail', json.dumps({'adapter': args.adapter_path}))
 
     model, tokenizer = load(MODEL_PATH, adapter_path=args.adapter_path)
 
     docs = {}
     for doc in sorted(DOCS.glob('*.md')):
-        ref_file = REFS / f'{doc.stem}.json'
+        ref_file = refs_dir / f'{doc.stem}.json'
         if not ref_file.exists():
             print(f'{doc.stem}: no teacher reference, skipping', flush=True)
             continue

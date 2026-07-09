@@ -15,8 +15,8 @@ from pathlib import Path
 EXP = Path(__file__).resolve().parents[1]
 REPO = EXP.parents[1]
 DOCS = EXP / 'data' / 'train-docs'
-LABELS = EXP / 'data' / 'teacher-out'
-OUT = EXP / 'data' / 'mlx-data'
+LABELS = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else EXP / 'data' / 'teacher-out'
+OUT = Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else EXP / 'data' / 'mlx-data'
 WORKLOG = [sys.executable, str(EXP / 'bin' / 'worklog.py')]
 
 
@@ -35,7 +35,7 @@ def build_prompt(doc: Path) -> str:
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     wl('start', '--id', 'dataset', '--parent', 'distill', '--actor', 'script:build_dataset',
-       '--kind', 'setup', '--label', 'Build mlx chat-format dataset from teacher pairs')
+       '--kind', 'setup', '--label', f'Build mlx dataset from {LABELS.name}')
 
     stems = sorted(
         doc.stem for doc in DOCS.glob('*.md') if (LABELS / f'{doc.stem}.json').exists()
