@@ -1,0 +1,41 @@
+{
+  "tag": "base",
+  "adapter": null,
+  "model": "/Users/neil/.cache/lm-studio/models/Qwen3.5-2B-6bit",
+  "docs": {
+    "alan-turing": {
+      "json_valid": false,
+      "node_f1": 0.0,
+      "edge_f1_directed": 0.0,
+      "edge_f1_pairs_directed": 0.0,
+      "edge_f1_pairs_undirected": 0.0,
+      "seconds": 228.9,
+      "raw_chars": 8821
+    },
+    "apollo-11": {
+      "json_valid": true,
+      "node_f1": 0.6939,
+      "edge_f1_directed": 0.2414,
+      "edge_f1_pairs_directed": 0.2414,
+      "edge_f1_pairs_undirected": 0.2414,
+      "seconds": 167.7,
+      "raw_chars": 9639
+    },
+    "crispr": {
+      "json_valid": false,
+      "node_f1": 0.0,
+      "edge_f1_directed": 0.0,
+      "edge_f1_pairs_directed": 0.0,
+      "edge_f1_pairs_undirected": 0.0,
+      "seconds": 204.3,
+      "raw_chars": 10640
+    }
+  },
+  "means": {
+    "node_f1": 0.2313,
+    "edge_f1_directed": 0.0805,
+    "edge_f1_pairs_directed": 0.0805,
+    "edge_f1_pairs_undirected": 0.0805,
+    "json_valid_rate": 0.3333
+  }
+}

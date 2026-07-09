@@ -269,3 +269,123 @@
 {"event": "note", "id": "distill", "actor": "claude", "label": "4096-seq training hits a performance cliff (3 iters >10min); pivoting to 2.2k-char docs so pairs fit 2048 tokens (~30s/iter)", "ts": "2026-07-09T13:25:58+00:00"}
 {"event": "start", "id": "teacher55-test-2k", "parent": "distill", "actor": "pi:teacher55(gpt-5.5)", "kind": "batch", "label": "gpt-5.5 teacher-label 3 docs via pi RPC", "ts": "2026-07-09T13:26:17+00:00"}
 {"event": "start", "id": "teacher55-test-2k:alan-turing", "parent": "teacher55-test-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "alan-turing", "ts": "2026-07-09T13:26:17+00:00"}
+{"event": "end", "id": "teacher55-test-2k:alan-turing", "status": "ok", "detail": {"seconds": 59.1, "nodes": 25, "edges": 26}, "ts": "2026-07-09T13:27:16+00:00"}
+{"event": "start", "id": "teacher55-test-2k:apollo-11", "parent": "teacher55-test-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "apollo-11", "ts": "2026-07-09T13:27:16+00:00"}
+{"event": "end", "id": "teacher55-test-2k:apollo-11", "status": "ok", "detail": {"seconds": 51.1, "nodes": 25, "edges": 40}, "ts": "2026-07-09T13:28:07+00:00"}
+{"event": "start", "id": "teacher55-test-2k:crispr", "parent": "teacher55-test-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "crispr", "ts": "2026-07-09T13:28:07+00:00"}
+{"event": "end", "id": "teacher55-test-2k:crispr", "status": "ok", "detail": {"seconds": 42.8, "nodes": 25, "edges": 27}, "ts": "2026-07-09T13:28:50+00:00"}
+{"event": "end", "id": "teacher55-test-2k", "status": "ok", "detail": {"labeled": 3, "failed": 0}, "ts": "2026-07-09T13:28:50+00:00"}
+{"event": "start", "id": "teacher55-train-2k", "parent": "distill", "actor": "pi:teacher55(gpt-5.5)", "kind": "batch", "label": "gpt-5.5 teacher-label 45 docs via pi RPC", "ts": "2026-07-09T13:28:50+00:00"}
+{"event": "start", "id": "teacher55-train-2k:ada-lovelace", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "ada-lovelace", "ts": "2026-07-09T13:28:50+00:00"}
+{"event": "end", "id": "teacher55-train-2k:ada-lovelace", "status": "ok", "detail": {"seconds": 47.5, "nodes": 25, "edges": 34}, "ts": "2026-07-09T13:29:38+00:00"}
+{"event": "start", "id": "teacher55-train-2k:albert-einstein", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "albert-einstein", "ts": "2026-07-09T13:29:38+00:00"}
+{"event": "end", "id": "teacher55-train-2k:albert-einstein", "status": "failed", "detail": {"seconds": 69.3, "raw_chars": 2214}, "ts": "2026-07-09T13:30:47+00:00"}
+{"event": "start", "id": "teacher55-train-2k:american-civil-war", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "american-civil-war", "ts": "2026-07-09T13:30:47+00:00"}
+{"event": "end", "id": "teacher55-train-2k:american-civil-war", "status": "ok", "detail": {"seconds": 52.4, "nodes": 25, "edges": 35}, "ts": "2026-07-09T13:31:39+00:00"}
+{"event": "start", "id": "teacher55-train-2k:antarctica", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "antarctica", "ts": "2026-07-09T13:31:40+00:00"}
+{"event": "end", "id": "teacher55-train-2k:antarctica", "status": "ok", "detail": {"seconds": 43.9, "nodes": 25, "edges": 24}, "ts": "2026-07-09T13:32:23+00:00"}
+{"event": "start", "id": "teacher55-train-2k:apple-inc", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "apple-inc", "ts": "2026-07-09T13:32:24+00:00"}
+{"event": "end", "id": "teacher55-train-2k:apple-inc", "status": "ok", "detail": {"seconds": 92.3, "nodes": 25, "edges": 33}, "ts": "2026-07-09T13:33:56+00:00"}
+{"event": "start", "id": "teacher55-train-2k:artificial-intelligence", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "artificial-intelligence", "ts": "2026-07-09T13:33:56+00:00"}
+{"event": "end", "id": "teacher55-train-2k:artificial-intelligence", "status": "ok", "detail": {"seconds": 53.7, "nodes": 25, "edges": 25}, "ts": "2026-07-09T13:34:50+00:00"}
+{"event": "start", "id": "teacher55-train-2k:blockchain", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "blockchain", "ts": "2026-07-09T13:34:50+00:00"}
+{"event": "end", "id": "teacher55-train-2k:blockchain", "status": "ok", "detail": {"seconds": 54.2, "nodes": 25, "edges": 26}, "ts": "2026-07-09T13:35:44+00:00"}
+{"event": "start", "id": "teacher55-train-2k:boeing-747", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "boeing-747", "ts": "2026-07-09T13:35:44+00:00"}
+{"event": "end", "id": "teacher55-train-2k:boeing-747", "status": "ok", "detail": {"seconds": 45.6, "nodes": 25, "edges": 26}, "ts": "2026-07-09T13:36:29+00:00"}
+{"event": "start", "id": "teacher55-train-2k:chernobyl-disaster", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "chernobyl-disaster", "ts": "2026-07-09T13:36:29+00:00"}
+{"event": "end", "id": "teacher55-train-2k:chernobyl-disaster", "status": "ok", "detail": {"seconds": 73.1, "nodes": 25, "edges": 30}, "ts": "2026-07-09T13:37:43+00:00"}
+{"event": "start", "id": "teacher55-train-2k:coca-cola", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "coca-cola", "ts": "2026-07-09T13:37:43+00:00"}
+{"event": "end", "id": "teacher55-train-2k:coca-cola", "status": "ok", "detail": {"seconds": 46.3, "nodes": 25, "edges": 27}, "ts": "2026-07-09T13:38:29+00:00"}
+{"event": "start", "id": "teacher55-train-2k:cuban-missile-crisis", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "cuban-missile-crisis", "ts": "2026-07-09T13:38:29+00:00"}
+{"event": "end", "id": "teacher55-train-2k:cuban-missile-crisis", "status": "ok", "detail": {"seconds": 46.6, "nodes": 25, "edges": 36}, "ts": "2026-07-09T13:39:16+00:00"}
+{"event": "start", "id": "teacher55-train-2k:evolution", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "evolution", "ts": "2026-07-09T13:39:16+00:00"}
+{"event": "end", "id": "teacher55-train-2k:evolution", "status": "ok", "detail": {"seconds": 70.0, "nodes": 25, "edges": 33}, "ts": "2026-07-09T13:40:26+00:00"}
+{"event": "start", "id": "teacher55-train-2k:fall-of-constantinople", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "fall-of-constantinople", "ts": "2026-07-09T13:40:26+00:00"}
+{"event": "end", "id": "teacher55-train-2k:fall-of-constantinople", "status": "ok", "detail": {"seconds": 47.3, "nodes": 25, "edges": 35}, "ts": "2026-07-09T13:41:13+00:00"}
+{"event": "start", "id": "teacher55-train-2k:ford-model-t", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "ford-model-t", "ts": "2026-07-09T13:41:13+00:00"}
+{"event": "end", "id": "teacher55-train-2k:ford-model-t", "status": "ok", "detail": {"seconds": 42.7, "nodes": 25, "edges": 26}, "ts": "2026-07-09T13:41:56+00:00"}
+{"event": "start", "id": "teacher55-train-2k:french-revolution", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "french-revolution", "ts": "2026-07-09T13:41:56+00:00"}
+{"event": "end", "id": "teacher55-train-2k:french-revolution", "status": "ok", "detail": {"seconds": 56.9, "nodes": 25, "edges": 24}, "ts": "2026-07-09T13:42:53+00:00"}
+{"event": "start", "id": "teacher55-train-2k:frida-kahlo", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "frida-kahlo", "ts": "2026-07-09T13:42:53+00:00"}
+{"event": "end", "id": "teacher55-train-2k:frida-kahlo", "status": "ok", "detail": {"seconds": 43.0, "nodes": 25, "edges": 29}, "ts": "2026-07-09T13:43:36+00:00"}
+{"event": "start", "id": "teacher55-train-2k:general-relativity", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "general-relativity", "ts": "2026-07-09T13:43:36+00:00"}
+{"event": "end", "id": "teacher55-train-2k:general-relativity", "status": "ok", "detail": {"seconds": 71.6, "nodes": 25, "edges": 30}, "ts": "2026-07-09T13:44:48+00:00"}
+{"event": "start", "id": "teacher55-train-2k:great-barrier-reef", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "great-barrier-reef", "ts": "2026-07-09T13:44:48+00:00"}
+{"event": "end", "id": "teacher55-train-2k:great-barrier-reef", "status": "ok", "detail": {"seconds": 86.7, "nodes": 25, "edges": 28}, "ts": "2026-07-09T13:46:14+00:00"}
+{"event": "start", "id": "teacher55-train-2k:industrial-revolution", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "industrial-revolution", "ts": "2026-07-09T13:46:14+00:00"}
+{"event": "end", "id": "teacher55-train-2k:industrial-revolution", "status": "ok", "detail": {"seconds": 73.7, "nodes": 25, "edges": 28}, "ts": "2026-07-09T13:47:28+00:00"}
+{"event": "start", "id": "teacher55-train-2k:international-olympic-committee", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "international-olympic-committee", "ts": "2026-07-09T13:47:28+00:00"}
+{"event": "end", "id": "teacher55-train-2k:international-olympic-committee", "status": "ok", "detail": {"seconds": 50.0, "nodes": 25, "edges": 32}, "ts": "2026-07-09T13:48:18+00:00"}
+{"event": "start", "id": "teacher55-train-2k:internet", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "internet", "ts": "2026-07-09T13:48:18+00:00"}
+{"event": "end", "id": "teacher55-train-2k:internet", "status": "ok", "detail": {"seconds": 40.3, "nodes": 25, "edges": 26}, "ts": "2026-07-09T13:48:59+00:00"}
+{"event": "start", "id": "teacher55-train-2k:iphone", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "iphone", "ts": "2026-07-09T13:48:59+00:00"}
+{"event": "end", "id": "teacher55-train-2k:iphone", "status": "ok", "detail": {"seconds": 45.5, "nodes": 25, "edges": 33}, "ts": "2026-07-09T13:49:44+00:00"}
+{"event": "start", "id": "teacher55-train-2k:leonardo-da-vinci", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "leonardo-da-vinci", "ts": "2026-07-09T13:49:44+00:00"}
+{"event": "end", "id": "teacher55-train-2k:leonardo-da-vinci", "status": "ok", "detail": {"seconds": 50.7, "nodes": 25, "edges": 34}, "ts": "2026-07-09T13:50:35+00:00"}
+{"event": "start", "id": "teacher55-train-2k:machine-learning", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "machine-learning", "ts": "2026-07-09T13:50:35+00:00"}
+{"event": "end", "id": "teacher55-train-2k:machine-learning", "status": "ok", "detail": {"seconds": 45.9, "nodes": 25, "edges": 31}, "ts": "2026-07-09T13:51:21+00:00"}
+{"event": "start", "id": "teacher55-train-2k:mahatma-gandhi", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "mahatma-gandhi", "ts": "2026-07-09T13:51:21+00:00"}
+{"event": "end", "id": "teacher55-train-2k:mahatma-gandhi", "status": "ok", "detail": {"seconds": 76.3, "nodes": 25, "edges": 32}, "ts": "2026-07-09T13:52:37+00:00"}
+{"event": "start", "id": "teacher55-train-2k:marie-curie", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "marie-curie", "ts": "2026-07-09T13:52:37+00:00"}
+{"event": "end", "id": "teacher55-train-2k:marie-curie", "status": "ok", "detail": {"seconds": 51.7, "nodes": 25, "edges": 38}, "ts": "2026-07-09T13:53:29+00:00"}
+{"event": "start", "id": "teacher55-train-2k:meiji-restoration", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "meiji-restoration", "ts": "2026-07-09T13:53:29+00:00"}
+{"event": "end", "id": "teacher55-train-2k:meiji-restoration", "status": "ok", "detail": {"seconds": 46.9, "nodes": 25, "edges": 31}, "ts": "2026-07-09T13:54:16+00:00"}
+{"event": "start", "id": "teacher55-train-2k:microsoft", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "microsoft", "ts": "2026-07-09T13:54:16+00:00"}
+{"event": "end", "id": "teacher55-train-2k:microsoft", "status": "ok", "detail": {"seconds": 64.1, "nodes": 25, "edges": 32}, "ts": "2026-07-09T13:55:20+00:00"}
+{"event": "start", "id": "teacher55-train-2k:mount-everest", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "mount-everest", "ts": "2026-07-09T13:55:20+00:00"}
+{"event": "end", "id": "teacher55-train-2k:mount-everest", "status": "ok", "detail": {"seconds": 53.0, "nodes": 25, "edges": 33}, "ts": "2026-07-09T13:56:13+00:00"}
+{"event": "start", "id": "teacher55-train-2k:nasa", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "nasa", "ts": "2026-07-09T13:56:13+00:00"}
+{"event": "end", "id": "teacher55-train-2k:nasa", "status": "ok", "detail": {"seconds": 53.3, "nodes": 25, "edges": 27}, "ts": "2026-07-09T13:57:06+00:00"}
+{"event": "start", "id": "teacher55-train-2k:nelson-mandela", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "nelson-mandela", "ts": "2026-07-09T13:57:06+00:00"}
+{"event": "end", "id": "teacher55-train-2k:nelson-mandela", "status": "ok", "detail": {"seconds": 48.4, "nodes": 25, "edges": 32}, "ts": "2026-07-09T13:57:55+00:00"}
+{"event": "start", "id": "teacher55-train-2k:new-york-city", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "new-york-city", "ts": "2026-07-09T13:57:55+00:00"}
+{"event": "end", "id": "teacher55-train-2k:new-york-city", "status": "ok", "detail": {"seconds": 82.4, "nodes": 25, "edges": 32}, "ts": "2026-07-09T13:59:17+00:00"}
+{"event": "start", "id": "teacher55-train-2k:nile", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "nile", "ts": "2026-07-09T13:59:17+00:00"}
+{"event": "end", "id": "teacher55-train-2k:nile", "status": "ok", "detail": {"seconds": 49.1, "nodes": 25, "edges": 40}, "ts": "2026-07-09T14:00:07+00:00"}
+{"event": "start", "id": "teacher55-train-2k:nintendo-entertainment-system", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "nintendo-entertainment-system", "ts": "2026-07-09T14:00:07+00:00"}
+{"event": "end", "id": "teacher55-train-2k:nintendo-entertainment-system", "status": "ok", "detail": {"seconds": 112.0, "nodes": 25, "edges": 34}, "ts": "2026-07-09T14:01:59+00:00"}
+{"event": "start", "id": "teacher55-train-2k:plate-tectonics", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "plate-tectonics", "ts": "2026-07-09T14:01:59+00:00"}
+{"event": "end", "id": "teacher55-train-2k:plate-tectonics", "status": "ok", "detail": {"seconds": 45.0, "nodes": 25, "edges": 30}, "ts": "2026-07-09T14:02:44+00:00"}
+{"event": "start", "id": "teacher55-train-2k:playstation-console", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "playstation-console", "ts": "2026-07-09T14:02:44+00:00"}
+{"event": "end", "id": "teacher55-train-2k:playstation-console", "status": "ok", "detail": {"seconds": 110.1, "nodes": 25, "edges": 28}, "ts": "2026-07-09T14:04:34+00:00"}
+{"event": "start", "id": "teacher55-train-2k:quantum-mechanics", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "quantum-mechanics", "ts": "2026-07-09T14:04:34+00:00"}
+{"event": "end", "id": "teacher55-train-2k:quantum-mechanics", "status": "ok", "detail": {"seconds": 71.9, "nodes": 25, "edges": 27}, "ts": "2026-07-09T14:05:46+00:00"}
+{"event": "start", "id": "teacher55-train-2k:reformation", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "reformation", "ts": "2026-07-09T14:05:46+00:00"}
+{"event": "end", "id": "teacher55-train-2k:reformation", "status": "ok", "detail": {"seconds": 47.0, "nodes": 25, "edges": 28}, "ts": "2026-07-09T14:06:33+00:00"}
+{"event": "start", "id": "teacher55-train-2k:rome", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "rome", "ts": "2026-07-09T14:06:33+00:00"}
+{"event": "end", "id": "teacher55-train-2k:rome", "status": "ok", "detail": {"seconds": 46.8, "nodes": 25, "edges": 26}, "ts": "2026-07-09T14:07:20+00:00"}
+{"event": "start", "id": "teacher55-train-2k:serena-williams", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "serena-williams", "ts": "2026-07-09T14:07:20+00:00"}
+{"event": "end", "id": "teacher55-train-2k:serena-williams", "status": "ok", "detail": {"seconds": 47.3, "nodes": 25, "edges": 31}, "ts": "2026-07-09T14:08:07+00:00"}
+{"event": "start", "id": "teacher55-train-2k:tesla-model-s", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "tesla-model-s", "ts": "2026-07-09T14:08:07+00:00"}
+{"event": "end", "id": "teacher55-train-2k:tesla-model-s", "status": "ok", "detail": {"seconds": 83.1, "nodes": 25, "edges": 33}, "ts": "2026-07-09T14:09:30+00:00"}
+{"event": "start", "id": "teacher55-train-2k:the-walt-disney-company", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "the-walt-disney-company", "ts": "2026-07-09T14:09:30+00:00"}
+{"event": "end", "id": "teacher55-train-2k:the-walt-disney-company", "status": "ok", "detail": {"seconds": 89.7, "nodes": 25, "edges": 28}, "ts": "2026-07-09T14:11:00+00:00"}
+{"event": "start", "id": "teacher55-train-2k:tokyo", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "tokyo", "ts": "2026-07-09T14:11:00+00:00"}
+{"event": "end", "id": "teacher55-train-2k:tokyo", "status": "ok", "detail": {"seconds": 43.3, "nodes": 25, "edges": 28}, "ts": "2026-07-09T14:11:44+00:00"}
+{"event": "start", "id": "teacher55-train-2k:united-nations", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "united-nations", "ts": "2026-07-09T14:11:44+00:00"}
+{"event": "end", "id": "teacher55-train-2k:united-nations", "status": "ok", "detail": {"seconds": 43.5, "nodes": 25, "edges": 23}, "ts": "2026-07-09T14:12:27+00:00"}
+{"event": "start", "id": "teacher55-train-2k:world-health-organization", "parent": "teacher55-train-2k", "actor": "pi:teacher55(gpt-5.5)", "kind": "llm_run", "label": "world-health-organization", "ts": "2026-07-09T14:12:27+00:00"}
+{"event": "end", "id": "teacher55-train-2k:world-health-organization", "status": "ok", "detail": {"seconds": 43.3, "nodes": 25, "edges": 25}, "ts": "2026-07-09T14:13:11+00:00"}
+{"event": "end", "id": "teacher55-train-2k", "status": "failed", "detail": {"labeled": 44, "failed": 1}, "ts": "2026-07-09T14:13:11+00:00"}
+{"event": "start", "id": "dataset", "parent": "distill", "actor": "script:build_dataset", "kind": "setup", "label": "Build mlx dataset from teacher55-out-2k", "ts": "2026-07-09T14:14:04+00:00"}
+{"event": "end", "id": "dataset", "status": "ok", "detail": {"train": 39, "valid": 5}, "ts": "2026-07-09T14:14:05+00:00"}
+{"event": "start", "id": "train-2k", "parent": "distill", "actor": "mlx:train", "kind": "train", "label": "LoRA 80 iters, seq 2688, 8 layers, gpt-5.5 2k dataset", "ts": "2026-07-09T14:17:17+00:00"}
+{"event": "note", "id": "train-2k", "actor": "mlx:train", "label": "crashed at ~iter 15: metal buffer-count limit exceeded; retrying with --grad-checkpoint", "ts": "2026-07-09T15:04:19+00:00"}
+{"event": "start", "id": "eval-lora-2k", "parent": "distill", "actor": "mlx:eval", "kind": "eval", "label": "Eval lora-2k vs teacher55-out-test-2k", "detail": {"adapter": "/Users/neil/projects/graph-extract/experiments/distill/data/adapters-2k"}, "ts": "2026-07-09T16:19:57+00:00"}
+{"event": "start", "id": "eval-lora-2k:alan-turing", "parent": "eval-lora-2k", "actor": "mlx:eval", "kind": "llm_run", "label": "alan-turing", "ts": "2026-07-09T16:19:58+00:00"}
+{"event": "end", "id": "eval-lora-2k:alan-turing", "status": "ok", "detail": {"json_valid": true, "node_f1": 0.5306, "edge_f1_directed": 0.08, "edge_f1_pairs_directed": 0.2449, "edge_f1_pairs_undirected": 0.2449, "seconds": 14.4, "raw_chars": 5216}, "ts": "2026-07-09T16:20:13+00:00"}
+{"event": "start", "id": "eval-lora-2k:apollo-11", "parent": "eval-lora-2k", "actor": "mlx:eval", "kind": "llm_run", "label": "apollo-11", "ts": "2026-07-09T16:20:13+00:00"}
+{"event": "end", "id": "eval-lora-2k:apollo-11", "status": "ok", "detail": {"json_valid": true, "node_f1": 0.64, "edge_f1_directed": 0.0308, "edge_f1_pairs_directed": 0.1562, "edge_f1_pairs_undirected": 0.25, "seconds": 17.3, "raw_chars": 6463}, "ts": "2026-07-09T16:20:30+00:00"}
+{"event": "start", "id": "eval-lora-2k:crispr", "parent": "eval-lora-2k", "actor": "mlx:eval", "kind": "llm_run", "label": "crispr", "ts": "2026-07-09T16:20:30+00:00"}
+{"event": "end", "id": "eval-lora-2k:crispr", "status": "ok", "detail": {"json_valid": true, "node_f1": 0.4082, "edge_f1_directed": 0.0938, "edge_f1_pairs_directed": 0.1379, "edge_f1_pairs_undirected": 0.1404, "seconds": 17.7, "raw_chars": 6509}, "ts": "2026-07-09T16:20:48+00:00"}
+{"event": "end", "id": "eval-lora-2k", "status": "ok", "detail": {"node_f1": 0.5263, "edge_f1_directed": 0.0682, "edge_f1_pairs_directed": 0.1797, "edge_f1_pairs_undirected": 0.2118, "json_valid_rate": 1.0}, "ts": "2026-07-09T16:20:48+00:00"}
+{"event": "start", "id": "eval-base-2k", "parent": "distill", "actor": "mlx:eval", "kind": "eval", "label": "Eval base-2k vs teacher55-out-test-2k", "detail": {"adapter": null}, "ts": "2026-07-09T16:20:49+00:00"}
+{"event": "start", "id": "eval-base-2k:alan-turing", "parent": "eval-base-2k", "actor": "mlx:eval", "kind": "llm_run", "label": "alan-turing", "ts": "2026-07-09T16:20:50+00:00"}
+{"event": "end", "id": "eval-base-2k:alan-turing", "status": "failed", "detail": {"json_valid": false, "node_f1": 0.0, "edge_f1_directed": 0.0, "edge_f1_pairs_directed": 0.0, "edge_f1_pairs_undirected": 0.0, "seconds": 27.9, "raw_chars": 8759}, "ts": "2026-07-09T16:21:18+00:00"}
+{"event": "start", "id": "eval-base-2k:apollo-11", "parent": "eval-base-2k", "actor": "mlx:eval", "kind": "llm_run", "label": "apollo-11", "ts": "2026-07-09T16:21:18+00:00"}
+{"event": "end", "id": "eval-base-2k:apollo-11", "status": "failed", "detail": {"json_valid": false, "node_f1": 0.0, "edge_f1_directed": 0.0, "edge_f1_pairs_directed": 0.0, "edge_f1_pairs_undirected": 0.0, "seconds": 31.3, "raw_chars": 10287}, "ts": "2026-07-09T16:21:49+00:00"}
+{"event": "start", "id": "eval-base-2k:crispr", "parent": "eval-base-2k", "actor": "mlx:eval", "kind": "llm_run", "label": "crispr", "ts": "2026-07-09T16:21:49+00:00"}
+{"event": "end", "id": "eval-base-2k:crispr", "status": "failed", "detail": {"json_valid": false, "node_f1": 0.0, "edge_f1_directed": 0.0, "edge_f1_pairs_directed": 0.0, "edge_f1_pairs_undirected": 0.0, "seconds": 28.1, "raw_chars": 10632}, "ts": "2026-07-09T16:22:17+00:00"}
+{"event": "end", "id": "eval-base-2k", "status": "ok", "detail": {"node_f1": 0.0, "edge_f1_directed": 0.0, "edge_f1_pairs_directed": 0.0, "edge_f1_pairs_undirected": 0.0, "json_valid_rate": 0.0}, "ts": "2026-07-09T16:22:17+00:00"}
+{"event": "end", "id": "train-2k", "status": "ok", "detail": {"final_train_loss": 0.295, "final_val_loss": 0.591}, "ts": "2026-07-09T16:32:24+00:00"}
+{"event": "end", "id": "distill", "status": "ok", "detail": {"verdict": "distillation signal confirmed: json 0/3->3/3, node_f1 0->0.53, direction errors eliminated in spot checks"}, "ts": "2026-07-09T16:32:24+00:00"}

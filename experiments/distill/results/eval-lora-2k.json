@@ -1,0 +1,41 @@
+{
+  "tag": "lora-2k",
+  "adapter": "/Users/neil/projects/graph-extract/experiments/distill/data/adapters-2k",
+  "model": "/Users/neil/.cache/lm-studio/models/Qwen3.5-2B-6bit",
+  "docs": {
+    "alan-turing": {
+      "json_valid": true,
+      "node_f1": 0.5306,
+      "edge_f1_directed": 0.08,
+      "edge_f1_pairs_directed": 0.2449,
+      "edge_f1_pairs_undirected": 0.2449,
+      "seconds": 14.4,
+      "raw_chars": 5216
+    },
+    "apollo-11": {
+      "json_valid": true,
+      "node_f1": 0.64,
+      "edge_f1_directed": 0.0308,
+      "edge_f1_pairs_directed": 0.1562,
+      "edge_f1_pairs_undirected": 0.25,
+      "seconds": 17.3,
+      "raw_chars": 6463
+    },
+    "crispr": {
+      "json_valid": true,
+      "node_f1": 0.4082,
+      "edge_f1_directed": 0.0938,
+      "edge_f1_pairs_directed": 0.1379,
+      "edge_f1_pairs_undirected": 0.1404,
+      "seconds": 17.7,
+      "raw_chars": 6509
+    }
+  },
+  "means": {
+    "node_f1": 0.5263,
+    "edge_f1_directed": 0.0682,
+    "edge_f1_pairs_directed": 0.1797,
+    "edge_f1_pairs_undirected": 0.2118,
+    "json_valid_rate": 1.0
+  }
+}
