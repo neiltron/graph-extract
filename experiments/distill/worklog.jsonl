@@ -1,0 +1,7 @@
+{"event": "start", "id": "distill", "actor": "claude", "kind": "phase", "label": "Small-model distillation experiment (rebuilt in-repo after tmp scratchpad wipe)", "ts": "2026-07-09T02:35:17+00:00"}
+{"event": "note", "id": "distill", "actor": "claude", "label": "session restart wiped /tmp scratchpad: lost corpus, teacher labels, mlx venv, prior worklog; scripts recreated from context, experiment now lives in experiments/distill", "ts": "2026-07-09T02:35:17+00:00"}
+{"event": "start", "id": "corpus", "parent": "distill", "actor": "pi:corpus", "kind": "agent_task", "label": "Re-fetch 45 train docs + 3 test docs", "ts": "2026-07-09T02:35:17+00:00"}
+{"event": "start", "id": "mlxsetup", "parent": "distill", "actor": "claude", "kind": "setup", "label": "Recreate mlx-lm venv (known recipe)", "ts": "2026-07-09T02:35:17+00:00"}
+{"event": "note", "id": "mlxsetup", "actor": "claude", "label": "venv + mlx-lm git main installed", "ts": "2026-07-09T02:36:01+00:00"}
+{"event": "note", "id": "corpus", "actor": "pi:corpus", "label": "start", "ts": "2026-07-09T02:36:04+00:00"}
+{"event": "end", "id": "mlxsetup", "status": "ok", "detail": {"mlx_lm": "0.31.3 git-main", "model_smoke": true, "gen_tps": 210}, "ts": "2026-07-09T02:37:14+00:00"}
