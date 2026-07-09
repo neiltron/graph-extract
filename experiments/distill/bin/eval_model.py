@@ -114,9 +114,11 @@ def main() -> int:
     ap.add_argument('--adapter-path')
     ap.add_argument('--max-tokens', type=int, default=4096)
     ap.add_argument('--refs', default=str(REFS))
+    ap.add_argument('--docs', default=str(DOCS))
     args = ap.parse_args()
 
     refs_dir = Path(args.refs)
+    docs_dir = Path(args.docs)
 
     from mlx_lm import generate, load
 
@@ -129,7 +131,7 @@ def main() -> int:
     model, tokenizer = load(MODEL_PATH, adapter_path=args.adapter_path)
 
     docs = {}
-    for doc in sorted(DOCS.glob('*.md')):
+    for doc in sorted(docs_dir.glob('*.md')):
         ref_file = refs_dir / f'{doc.stem}.json'
         if not ref_file.exists():
             print(f'{doc.stem}: no teacher reference, skipping', flush=True)

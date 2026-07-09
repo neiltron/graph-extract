@@ -29,6 +29,7 @@ def wl(*args):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--iters', type=int, default=160)
+    ap.add_argument('--data', default=str(EXP / 'data' / 'mlx-data'))
     ap.add_argument('--batch-size', type=int, default=1)
     ap.add_argument('--num-layers', type=int, default=16)
     ap.add_argument('--learning-rate', default='1e-4')
@@ -40,7 +41,7 @@ def main() -> int:
         sys.executable, '-m', 'mlx_lm', 'lora',
         '--model', MODEL_PATH,
         '--train',
-        '--data', str(EXP / 'data' / 'mlx-data'),
+        '--data', args.data,
         '--iters', str(args.iters),
         '--batch-size', str(args.batch_size),
         '--num-layers', str(args.num_layers),

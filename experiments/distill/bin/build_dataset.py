@@ -14,7 +14,7 @@ from pathlib import Path
 
 EXP = Path(__file__).resolve().parents[1]
 REPO = EXP.parents[1]
-DOCS = EXP / 'data' / 'train-docs'
+DOCS = Path(sys.argv[3]).resolve() if len(sys.argv) > 3 else EXP / 'data' / 'train-docs'
 LABELS = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else EXP / 'data' / 'teacher-out'
 OUT = Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else EXP / 'data' / 'mlx-data'
 WORKLOG = [sys.executable, str(EXP / 'bin' / 'worklog.py')]
