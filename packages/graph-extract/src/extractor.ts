@@ -156,6 +156,7 @@ export class Extractor {
           temperature,
           maxTokens,
           buildGraphResponseSchema(schema),
+          this.config.stageModels?.single,
         );
         raw = response.content;
         finishReason = response.finishReason;
@@ -395,6 +396,7 @@ export class Extractor {
     maxRetries: number;
     onProgress?: ProgressCallback;
   }): Promise<StageResult<T>> {
+    const model = this.config.stageModels?.[options.name];
     let lastError: ParseError | undefined;
     let raw = '';
     let previousRaw: string | undefined;
@@ -408,6 +410,7 @@ export class Extractor {
           options.temperature,
           options.maxTokens,
           options.responseSchema,
+          model,
         );
         raw = response.content;
         finishReason = response.finishReason;
@@ -544,11 +547,12 @@ export class Extractor {
     temperature: number,
     maxTokens: number,
     responseSchema: ResponseSchemaDefinition,
+    model?: string,
   ): Promise<LLMResponse> {
     const responseFormat = this.resolveResponseFormat();
 
     try {
-      return await this.performCompletion(prompt, temperature, maxTokens, responseSchema, responseFormat);
+      return await this.performCompletion(prompt, temperature, maxTokens, responseSchema, responseFormat, model);
     } catch (e) {
       if (responseFormat && isResponseFormatRejection(e)) {
         this.responseFormatUnsupported = true;
@@ -556,7 +560,7 @@ export class Extractor {
           type: 'response_format_fallback',
           message: `Provider rejected response_format "${responseFormat}"; falling back to plain text output`,
         });
-        return await this.performCompletion(prompt, temperature, maxTokens, responseSchema, undefined);
+        return await this.performCompletion(prompt, temperature, maxTokens, responseSchema, undefined, model);
       }
 
       throw e;
@@ -569,10 +573,11 @@ export class Extractor {
     maxTokens: number,
     responseSchema: ResponseSchemaDefinition,
     responseFormat: 'json_object' | 'json_schema' | undefined,
+    model?: string,
   ): Promise<LLMResponse> {
     try {
       const request: ChatCompletionCreateParamsNonStreaming = {
-        model: this.config.provider.model,
+        model: model ?? this.config.provider.model,
         messages: [{ role: 'user', content: prompt }],
         temperature,
         max_completion_tokens: maxTokens,

@@ -30,6 +30,7 @@ export interface ExtractArgs {
   maxTokens?: string;
   requestTimeout?: string;
   pruneIsolated?: boolean;
+  stageModel?: string[];
   pretty?: boolean;
 }
 
@@ -143,11 +144,20 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
       return EXIT_CONFIG_ERROR;
     }
 
+    let stageModels: ExtractorConfig['stageModels'];
+    try {
+      stageModels = resolveStageModels(args.stageModel);
+    } catch (e) {
+      writeError(`Error: ${(e as Error).message}`);
+      return EXIT_CONFIG_ERROR;
+    }
+
     const config: ExtractorConfig = {
       provider,
       schema,
       mode,
       relationshipScope,
+      stageModels,
       maxTokens,
       onProgress: createProgressReporter(showProgress),
     };
@@ -253,6 +263,29 @@ export function resolveRelationshipScope(value?: string): 'global' | 'snippet' |
   throw new GraphExtractError(
     `Unsupported relationship scope: ${value}. Supported values: global, snippet`,
   );
+}
+
+export function resolveStageModels(values?: string[]): ExtractorConfig['stageModels'] {
+  if (!values || values.length === 0) {
+    return undefined;
+  }
+
+  const stages = ['single', 'entity', 'relation_schema', 'relationship'] as const;
+  const result: NonNullable<ExtractorConfig['stageModels']> = {};
+
+  for (const value of values) {
+    const eq = value.indexOf('=');
+    const stage = value.slice(0, eq) as (typeof stages)[number];
+    const model = value.slice(eq + 1);
+    if (eq === -1 || !stages.includes(stage) || !model) {
+      throw new GraphExtractError(
+        `Invalid --stage-model "${value}". Use <stage>=<model> with stage one of: ${stages.join(', ')}`,
+      );
+    }
+    result[stage] = model;
+  }
+
+  return result;
 }
 
 export function resolveMode(value?: string): ExtractionMode {

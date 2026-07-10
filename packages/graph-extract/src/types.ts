@@ -194,6 +194,12 @@ export interface ExtractorConfig {
    */
   relationshipScope?: 'global' | 'snippet';
 
+  /**
+   * Per-stage model overrides (e.g. a fine-tuned relationship-stage model
+   * alongside a base entity-stage model). Falls back to provider.model.
+   */
+  stageModels?: Partial<Record<'single' | 'entity' | 'relation_schema' | 'relationship', string>>;
+
   /** Temperature for LLM (default: 0) */
   temperature?: number;
 

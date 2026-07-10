@@ -503,3 +503,12 @@
 {"event": "start", "id": "cli-eval:gemma-3-4b-lora-2k__crispr__text", "parent": "cli-eval", "actor": "lmstudio:gemma-3-4b-lora-2k", "kind": "llm_run", "label": "gemma-3-4b-lora-2k__crispr__text", "ts": "2026-07-09T22:38:36+00:00"}
 {"event": "end", "id": "cli-eval:gemma-3-4b-lora-2k__crispr__text", "status": "ok", "detail": {"seconds": 112.6, "node_f1": 0.44, "json_valid": true}, "ts": "2026-07-09T22:40:29+00:00"}
 {"event": "end", "id": "cli-eval", "status": "ok", "ts": "2026-07-09T22:40:29+00:00"}
+{"event": "start", "id": "pairs:pair1", "parent": "distill", "actor": "pi:pair1(gpt-5.5)", "kind": "batch", "label": "Label snippet pairs, shard 0/4 (12 docs)", "ts": "2026-07-10T14:51:48+00:00"}
+{"event": "start", "id": "pairs:pair4", "parent": "distill", "actor": "pi:pair4(gpt-5.5)", "kind": "batch", "label": "Label snippet pairs, shard 3/4 (11 docs)", "ts": "2026-07-10T14:51:48+00:00"}
+{"event": "start", "id": "pairs:pair2", "parent": "distill", "actor": "pi:pair2(gpt-5.5)", "kind": "batch", "label": "Label snippet pairs, shard 1/4 (11 docs)", "ts": "2026-07-10T14:51:48+00:00"}
+{"event": "start", "id": "pairs:pair3", "parent": "distill", "actor": "pi:pair3(gpt-5.5)", "kind": "batch", "label": "Label snippet pairs, shard 2/4 (11 docs)", "ts": "2026-07-10T14:51:48+00:00"}
+{"event": "end", "id": "pairs:pair4", "status": "failed", "detail": {"pairs": 139, "failed": 1}, "ts": "2026-07-10T15:21:25+00:00"}
+{"event": "end", "id": "pairs:pair1", "status": "ok", "detail": {"pairs": 139, "failed": 0}, "ts": "2026-07-10T15:21:35+00:00"}
+{"event": "end", "id": "pairs:pair2", "status": "ok", "detail": {"pairs": 146, "failed": 0}, "ts": "2026-07-10T15:23:40+00:00"}
+{"event": "end", "id": "pairs:pair3", "status": "ok", "detail": {"pairs": 164, "failed": 0}, "ts": "2026-07-10T15:26:57+00:00"}
+{"event": "start", "id": "train-stage", "parent": "distill", "actor": "mlx:train", "kind": "train", "label": "LoRA relationship-stage: snippet-local pairs, seq 2048", "ts": "2026-07-10T15:29:14+00:00"}

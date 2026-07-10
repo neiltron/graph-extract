@@ -35,6 +35,8 @@ Extract Options:
   --max-tokens <n>       Max completion tokens per model call (default: 16384)
   --request-timeout <s>  Per-request timeout in seconds (default: 240)
   --prune-isolated       Remove nodes with no edges from the final graph
+  --stage-model <s=m>    Per-stage model override, repeatable (e.g.
+                         --stage-model relationship=my-tuned-model)
 
 Canvas Options:
   -o, --output <file>    Output file (default: stdout)
@@ -209,6 +211,13 @@ async function main(): Promise<number> {
         break;
       case '--prune-isolated':
         extractArgs.pruneIsolated = true;
+        break;
+      case '--stage-model':
+        if (next !== undefined) {
+          extractArgs.stageModel ??= [];
+          extractArgs.stageModel.push(next);
+          i++;
+        }
         break;
       case '-p':
       case '--pretty':
