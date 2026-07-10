@@ -512,3 +512,4 @@
 {"event": "end", "id": "pairs:pair2", "status": "ok", "detail": {"pairs": 146, "failed": 0}, "ts": "2026-07-10T15:23:40+00:00"}
 {"event": "end", "id": "pairs:pair3", "status": "ok", "detail": {"pairs": 164, "failed": 0}, "ts": "2026-07-10T15:26:57+00:00"}
 {"event": "start", "id": "train-stage", "parent": "distill", "actor": "mlx:train", "kind": "train", "label": "LoRA relationship-stage: snippet-local pairs, seq 2048", "ts": "2026-07-10T15:29:14+00:00"}
+{"event": "end", "id": "train-stage", "status": "ok", "ts": "2026-07-10T17:21:18+00:00"}

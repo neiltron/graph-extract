@@ -1,0 +1,80 @@
+[
+ {
+  "tag": "base-stage",
+  "doc": "alan-turing",
+  "seconds": 312.3,
+  "exit": 0,
+  "json_valid": true,
+  "node_f1": 0.44,
+  "edge_f1_directed": 0.0,
+  "edge_f1_pairs_directed": 0.0,
+  "edge_f1_pairs_undirected": 0.0,
+  "nodes": 25,
+  "edges": 3
+ },
+ {
+  "tag": "base-stage",
+  "doc": "apollo-11",
+  "seconds": 32.0,
+  "exit": 0,
+  "json_valid": true,
+  "node_f1": 0.6122,
+  "edge_f1_directed": 0.0,
+  "edge_f1_pairs_directed": 0.0851,
+  "edge_f1_pairs_undirected": 0.0851,
+  "nodes": 24,
+  "edges": 7
+ },
+ {
+  "tag": "base-stage",
+  "doc": "crispr",
+  "seconds": 21.9,
+  "exit": 0,
+  "json_valid": true,
+  "node_f1": 0.4255,
+  "edge_f1_directed": 0.0,
+  "edge_f1_pairs_directed": 0.0,
+  "edge_f1_pairs_undirected": 0.1081,
+  "nodes": 22,
+  "edges": 7
+ },
+ {
+  "tag": "tuned-stage",
+  "doc": "alan-turing",
+  "seconds": 50.2,
+  "exit": 0,
+  "json_valid": true,
+  "node_f1": 0.44,
+  "edge_f1_directed": 0.0,
+  "edge_f1_pairs_directed": 0.0667,
+  "edge_f1_pairs_undirected": 0.0667,
+  "nodes": 25,
+  "edges": 2
+ },
+ {
+  "tag": "tuned-stage",
+  "doc": "apollo-11",
+  "seconds": 54.5,
+  "exit": 0,
+  "json_valid": true,
+  "node_f1": 0.6122,
+  "edge_f1_directed": 0.0,
+  "edge_f1_pairs_directed": 0.0851,
+  "edge_f1_pairs_undirected": 0.0851,
+  "nodes": 24,
+  "edges": 7
+ },
+ {
+  "tag": "tuned-stage",
+  "doc": "crispr",
+  "seconds": 48.8,
+  "exit": 0,
+  "json_valid": true,
+  "node_f1": 0.4255,
+  "edge_f1_directed": 0.0,
+  "edge_f1_pairs_directed": 0.0571,
+  "edge_f1_pairs_undirected": 0.1143,
+  "nodes": 22,
+  "edges": 5
+ }
+]
