@@ -55,6 +55,28 @@ export type RelationType =
   | 'related_to'
   | (string & {}); // Allow custom types
 
+/**
+ * Type constraints for the built-in relation types. Only the seven concrete
+ * canonical entity types are ever *checked* — 'other' and custom types always
+ * pass, keeping enforcement precision-focused and custom-ontology-safe.
+ */
+export const DEFAULT_RELATION_CONSTRAINTS: Record<string, RelationConstraint> = {
+  works_for: { sourceTypes: ['person'], targetTypes: ['organization', 'person'] },
+  founded: { sourceTypes: ['person', 'organization'], targetTypes: ['organization', 'location', 'product', 'concept'] },
+  acquired: { sourceTypes: ['person', 'organization'], targetTypes: ['organization', 'product', 'location'] },
+  located_in: { sourceTypes: ['person', 'organization', 'location', 'product', 'event', 'concept'], targetTypes: ['location'] },
+  born_in: { sourceTypes: ['person'], targetTypes: ['location', 'date'] },
+  died_in: { sourceTypes: ['person'], targetTypes: ['location', 'date'] },
+  married_to: { sourceTypes: ['person'], targetTypes: ['person'] },
+  subsidiary_of: { sourceTypes: ['organization'], targetTypes: ['organization'] },
+  created: { sourceTypes: ['person', 'organization'], targetTypes: ['product', 'concept', 'organization', 'event', 'location'] },
+  member_of: { sourceTypes: ['person', 'organization'], targetTypes: ['organization', 'event', 'concept'] },
+  produced_by: { sourceTypes: ['product', 'concept', 'event', 'organization', 'location'], targetTypes: ['person', 'organization'] },
+  part_of: { sourceTypes: ['person', 'organization', 'location', 'product', 'event', 'concept'], targetTypes: ['organization', 'location', 'product', 'event', 'concept'] },
+  owns: { sourceTypes: ['person', 'organization'], targetTypes: ['product', 'organization', 'location', 'concept'] },
+  // related_to is the untyped fallback: deliberately unconstrained.
+};
+
 export type ExtractionMode = 'single' | 'staged';
 export type ExtractionProgressStage = 'single' | 'entity' | 'relation_schema' | 'relationship';
 
@@ -105,6 +127,20 @@ export interface Schema {
 
   /** Remove nodes with no edges from the final graph (default: false). */
   pruneIsolatedNodes?: boolean;
+
+  /**
+   * Per-relation entity-type constraints, merged over the built-in defaults.
+   * Edges violating a constraint are flipped when the reversed direction
+   * satisfies it, otherwise dropped with a warning.
+   */
+  relationConstraints?: Record<string, RelationConstraint>;
+}
+
+export interface RelationConstraint {
+  /** Entity types allowed as the edge source (subject). Omit for any. */
+  sourceTypes?: string[];
+  /** Entity types allowed as the edge target (object). Omit for any. */
+  targetTypes?: string[];
 }
 
 export const DEFAULT_ENTITY_TYPES: EntityType[] = [
@@ -277,6 +313,8 @@ export interface ValidationWarning {
     | 'graph_truncated'
     | 'isolated_nodes'
     | 'snippet_relationship_failed'
+    | 'constraint_violation'
+    | 'edge_direction_repaired'
     | 'response_format_fallback';
   message: string;
   edgeId?: string;

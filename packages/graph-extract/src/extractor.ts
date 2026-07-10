@@ -37,10 +37,17 @@ import type {
   ExtractionResult,
   ExtractorConfig,
   ProviderConfig,
+  RelationConstraint,
   Schema,
   ValidationWarning,
 } from './types.js';
-import { compactGraph, enforceGraphLimits, validate } from './validate.js';
+import { DEFAULT_RELATION_CONSTRAINTS } from './types.js';
+import {
+  compactGraph,
+  enforceGraphLimits,
+  enforceRelationConstraints,
+  validate,
+} from './validate.js';
 
 const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_STAGED_TEMPERATURE = 0;
@@ -155,7 +162,11 @@ export class Extractor {
 
         const graph = parseGraph(raw);
         const validationResult = validate(graph);
-        const limited = enforceGraphLimits(validationResult.graph, schema);
+        const constrained = enforceRelationConstraints(
+          validationResult.graph,
+          buildConstraintMap(undefined, schema),
+        );
+        const limited = enforceGraphLimits(constrained.graph, schema);
         const compacted = compactGraph(limited.graph, {
           pruneIsolatedNodes: schema.pruneIsolatedNodes,
         });
@@ -164,6 +175,7 @@ export class Extractor {
           graph: compacted.graph,
           warnings: [
             ...validationResult.warnings,
+            ...constrained.warnings,
             ...limited.warnings,
             ...compacted.warnings,
             ...this.runWarnings,
@@ -333,7 +345,11 @@ export class Extractor {
       relationships: relationshipStage.parsed.relationships,
     });
     const validationResult = validate(compiled.graph);
-    const limited = enforceGraphLimits(validationResult.graph, schema);
+    const constrained = enforceRelationConstraints(
+      validationResult.graph,
+      buildConstraintMap(relationTypes, schema),
+    );
+    const limited = enforceGraphLimits(constrained.graph, schema);
     const compacted = compactGraph(limited.graph, {
       pruneIsolatedNodes: schema.pruneIsolatedNodes,
     });
@@ -343,6 +359,7 @@ export class Extractor {
       warnings: [
         ...compiled.warnings,
         ...validationResult.warnings,
+        ...constrained.warnings,
         ...limited.warnings,
         ...compacted.warnings,
         ...this.runWarnings,
@@ -644,7 +661,10 @@ function buildRelationTypeDefinitions(
       continue;
     }
 
-    definitions.set(normalizedName, { name: normalizedName });
+    definitions.set(normalizedName, {
+      name: normalizedName,
+      ...DEFAULT_RELATION_CONSTRAINTS[normalizedName],
+    });
   }
 
   if (!definitions.has('related_to')) {
@@ -652,6 +672,29 @@ function buildRelationTypeDefinitions(
   }
 
   return [...definitions.values()];
+}
+
+/**
+ * Merge relation type constraints: built-in defaults, then constraints the
+ * relation-schema stage declared for induced relations, then explicit
+ * schema-level overrides.
+ */
+function buildConstraintMap(
+  relationTypes: RelationTypeDefinition[] | undefined,
+  schema: Schema,
+): Record<string, RelationConstraint> {
+  const map: Record<string, RelationConstraint> = { ...DEFAULT_RELATION_CONSTRAINTS };
+
+  for (const relationType of relationTypes ?? []) {
+    if (relationType.sourceTypes || relationType.targetTypes) {
+      map[relationType.name] = {
+        sourceTypes: relationType.sourceTypes,
+        targetTypes: relationType.targetTypes,
+      };
+    }
+  }
+
+  return { ...map, ...schema.relationConstraints };
 }
 
 function buildDebugStages(

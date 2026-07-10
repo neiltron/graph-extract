@@ -15,6 +15,10 @@ export interface CatalogEntity {
 export interface RelationTypeDefinition {
   name: string;
   description?: string;
+  /** Entity types allowed as the edge source; omit for any. */
+  sourceTypes?: string[];
+  /** Entity types allowed as the edge target; omit for any. */
+  targetTypes?: string[];
 }
 
 export interface RelationshipSnippet {

@@ -100,6 +100,11 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
             typeof schemaData.pruneIsolatedNodes === 'boolean'
               ? schemaData.pruneIsolatedNodes
               : undefined,
+          relationConstraints:
+            typeof schemaData.relationConstraints === 'object' &&
+            schemaData.relationConstraints !== null
+              ? (schemaData.relationConstraints as Schema['relationConstraints'])
+              : undefined,
         };
       } catch (e) {
         writeError(`Error: ${(e as Error).message}`);

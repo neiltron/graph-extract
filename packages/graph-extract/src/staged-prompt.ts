@@ -60,7 +60,7 @@ OUTPUT FORMAT:
 Return ONLY valid JSON with this exact structure:
 {
   "relationTypes": [
-    {"name": "relation_type", "description": "when to use this relation"}
+    {"name": "relation_type", "description": "when to use this relation", "source_types": ["person"], "target_types": ["organization"]}
   ]
 }
 
@@ -73,6 +73,7 @@ RULES:
 6. Always include related_to as a fallback relation
 7. Descriptions must be short and state the direction as "use when SOURCE <verb> TARGET", e.g. member_of: use when the source entity belongs to the target entity
 8. Do not invent entity-specific relation names
+9. source_types / target_types declare which entity types are valid as subject and object of the relation, chosen from: person, organization, location, date, product, event, concept. Use an empty array when any type fits. Example: works_for has source_types ["person"] because only a person works for something
 
 JSON:`;
 }
@@ -176,6 +177,8 @@ export function buildRelationSchemaResponseSchema(): ResponseSchemaDefinition {
             properties: {
               name: { type: 'string' },
               description: { type: 'string' },
+              source_types: { type: 'array', items: { type: 'string' } },
+              target_types: { type: 'array', items: { type: 'string' } },
             },
           },
         },
@@ -263,7 +266,7 @@ function buildRelationTypeList(relationTypes: RelationTypeDefinition[]): string 
   return JSON.stringify(
     relationTypes.map((relationType) => ({
       name: relationType.name,
-      reads: `SOURCE ${relationType.name} TARGET`,
+      reads: `${relationType.sourceTypes?.join('|').toUpperCase() || 'SOURCE'} ${relationType.name} ${relationType.targetTypes?.join('|').toUpperCase() || 'TARGET'}`,
       ...(relationType.description ? { description: relationType.description } : {}),
     })),
     null,

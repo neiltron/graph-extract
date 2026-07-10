@@ -95,7 +95,22 @@ function normalizeRelationTypeDefinition(raw: unknown): RelationTypeDefinition |
   return {
     name,
     description: normalizeText(obj.description ?? obj.summary),
+    sourceTypes: normalizeTypeList(obj.source_types ?? obj.sourceTypes),
+    targetTypes: normalizeTypeList(obj.target_types ?? obj.targetTypes),
   };
+}
+
+function normalizeTypeList(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const types = raw
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  return types.length > 0 ? types : undefined;
 }
 
 function normalizeRelationship(raw: unknown): ExtractedRelationship | null {

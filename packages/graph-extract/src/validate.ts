@@ -1,4 +1,97 @@
-import type { Edge, Graph, ValidationError, ValidationResult, ValidationWarning } from './types.js';
+import type {
+  Edge,
+  Graph,
+  RelationConstraint,
+  ValidationError,
+  ValidationResult,
+  ValidationWarning,
+} from './types.js';
+
+/** The concrete canonical entity types; 'other' and custom types always pass. */
+const CHECKED_ENTITY_TYPES = new Set([
+  'person',
+  'organization',
+  'location',
+  'date',
+  'product',
+  'event',
+  'concept',
+]);
+
+function violatesTypes(allowed: string[] | undefined, entityType: string): boolean {
+  if (!allowed || !CHECKED_ENTITY_TYPES.has(entityType)) {
+    return false;
+  }
+  return !allowed.includes(entityType);
+}
+
+/**
+ * Enforce per-relation entity-type constraints deterministically.
+ * A violating edge is flipped when the reversed direction satisfies the
+ * constraint (direction repair), otherwise dropped. Unconstrained relations
+ * and non-canonical entity types are never touched.
+ */
+export function enforceRelationConstraints(
+  graph: Graph,
+  constraints: Record<string, RelationConstraint>,
+): { graph: Graph; warnings: ValidationWarning[] } {
+  const warnings: ValidationWarning[] = [];
+  const typeById = new Map(graph.nodes.map((node) => [node.id, node.type]));
+  const labelById = new Map(graph.nodes.map((node) => [node.id, node.label]));
+  const edges: Edge[] = [];
+
+  for (const edge of graph.edges) {
+    const constraint = constraints[edge.type];
+    const sourceType = typeById.get(edge.source) ?? 'other';
+    const targetType = typeById.get(edge.target) ?? 'other';
+
+    if (!constraint) {
+      edges.push(edge);
+      continue;
+    }
+
+    const sourceViolates = violatesTypes(constraint.sourceTypes, sourceType);
+    const targetViolates = violatesTypes(constraint.targetTypes, targetType);
+
+    if (!sourceViolates && !targetViolates) {
+      edges.push(edge);
+      continue;
+    }
+
+    // Flip only when BOTH ends violate and the swap satisfies both — the
+    // signature of a subject/object swap. A single violating end means the
+    // pairing itself is suspect ("Congress created JFK"), and flipping would
+    // just launder a wrong edge into a type-plausible one; drop it instead.
+    const flippedSatisfies =
+      sourceViolates &&
+      targetViolates &&
+      !violatesTypes(constraint.sourceTypes, targetType) &&
+      !violatesTypes(constraint.targetTypes, sourceType);
+
+    if (flippedSatisfies) {
+      edges.push({ ...edge, source: edge.target, target: edge.source });
+      warnings.push({
+        type: 'edge_direction_repaired',
+        message: `Flipped edge ${edge.id}: "${labelById.get(edge.source)}" ${edge.type} "${labelById.get(edge.target)}" violated type constraints in that direction`,
+        edgeId: edge.id,
+        details: { relation: edge.type, sourceType, targetType },
+      });
+    } else {
+      warnings.push({
+        type: 'constraint_violation',
+        message: `Removed edge ${edge.id}: ${edge.type} does not allow ${sourceType} → ${targetType} ("${labelById.get(edge.source)}" → "${labelById.get(edge.target)}")`,
+        edgeId: edge.id,
+        details: { relation: edge.type, sourceType, targetType },
+      });
+    }
+  }
+
+  if (warnings.length === 0) {
+    return { graph, warnings };
+  }
+
+  return { graph: { nodes: graph.nodes, edges }, warnings };
+}
 
 /**
  * Validate a graph structure and return a cleaned version.

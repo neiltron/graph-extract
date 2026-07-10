@@ -1,7 +1,12 @@
 // Main API
 export { extract, createExtractor } from './extract.js';
 export { Extractor } from './extractor.js';
-export { validate, enforceGraphLimits, compactGraph } from './validate.js';
+export {
+  validate,
+  enforceGraphLimits,
+  compactGraph,
+  enforceRelationConstraints,
+} from './validate.js';
 
 // Types
 export type {
@@ -15,6 +20,7 @@ export type {
   ExtractionProgressEvent,
   Schema,
   ExtractorConfig,
+  RelationConstraint,
   ProviderConfig,
   ExtractionOptions,
   ExtractionDebugStage,
@@ -35,7 +41,11 @@ export type {
 } from './staged-types.js';
 
 // Constants
-export { DEFAULT_ENTITY_TYPES, DEFAULT_RELATION_TYPES } from './types.js';
+export {
+  DEFAULT_ENTITY_TYPES,
+  DEFAULT_RELATION_TYPES,
+  DEFAULT_RELATION_CONSTRAINTS,
+} from './types.js';
 
 // Errors
 export { GraphExtractError, ParseError, ProviderError } from './errors.js';
