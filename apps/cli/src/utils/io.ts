@@ -47,6 +47,13 @@ export function writeError(message: string): void {
 }
 
 /**
+ * Write a status message to stderr without marking it as an error.
+ */
+export function writeStatus(message: string): void {
+  process.stderr.write(`${message}\n`);
+}
+
+/**
  * Read and parse a JSON schema file.
  */
 export function readSchema(filePath: string): Record<string, unknown> {

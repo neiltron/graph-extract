@@ -25,9 +25,16 @@ Extract Options:
   -m, --model <name>     Model identifier
   --api-key <key>        Provider API key
   --stop <token>         Stop sequence (repeatable)
-  --response-format <type>  Response format (json_schema or json_object)
+  --response-format <type>  Response format (json_schema, json_object, or text;
+                         default: json_schema for lmstudio)
+  --mode <type>          Extraction mode (single or staged)
+  --relationship-scope <s>  Staged relationship pass: global (one call, default)
+                         or snippet (one small call per evidence snippet)
   --max-nodes <n>        Limit nodes in output
   --max-edges <n>        Limit edges in output
+  --max-tokens <n>       Max completion tokens per model call (default: 16384)
+  --request-timeout <s>  Per-request timeout in seconds (default: 240)
+  --prune-isolated       Remove nodes with no edges from the final graph
 
 Canvas Options:
   -o, --output <file>    Output file (default: stdout)
@@ -40,6 +47,11 @@ Environment Variables:
   GRAPH_EXTRACT_API_KEY     Provider API key
   GRAPH_EXTRACT_STOP        Comma-separated stop sequences
   GRAPH_EXTRACT_RESPONSE_FORMAT  Response format override
+  GRAPH_EXTRACT_MODE        Extraction mode override
+  GRAPH_EXTRACT_RELATIONSHIP_SCOPE  Staged relationship scope (global or snippet)
+  GRAPH_EXTRACT_MAX_TOKENS  Max completion tokens per model call
+  GRAPH_EXTRACT_REQUEST_TIMEOUT  Per-request timeout in seconds
+  GRAPH_EXTRACT_PRUNE_ISOLATED  Set to 1/true to drop nodes with no edges
   OPENAI_API_KEY            API key for OpenAI
   ANTHROPIC_API_KEY         API key for Anthropic
 
@@ -52,6 +64,9 @@ Examples:
 
   # With custom schema
   graph-extract -i doc.txt -s schema.json -m my-model --pretty
+
+  # Use staged mode for smaller local models
+  graph-extract -i doc.txt -m my-model --mode staged
 
   # Validate existing graph
   graph-extract validate graph.json
@@ -168,6 +183,14 @@ async function main(): Promise<number> {
         extractArgs.responseFormat = next;
         i++;
         break;
+      case '--mode':
+        extractArgs.mode = next;
+        i++;
+        break;
+      case '--relationship-scope':
+        extractArgs.relationshipScope = next;
+        i++;
+        break;
       case '--max-nodes':
         extractArgs.maxNodes = next;
         i++;
@@ -175,6 +198,17 @@ async function main(): Promise<number> {
       case '--max-edges':
         extractArgs.maxEdges = next;
         i++;
+        break;
+      case '--max-tokens':
+        extractArgs.maxTokens = next;
+        i++;
+        break;
+      case '--request-timeout':
+        extractArgs.requestTimeout = next;
+        i++;
+        break;
+      case '--prune-isolated':
+        extractArgs.pruneIsolated = true;
         break;
       case '-p':
       case '--pretty':

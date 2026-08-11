@@ -55,6 +55,34 @@ export type RelationType =
   | 'related_to'
   | (string & {}); // Allow custom types
 
+export type ExtractionMode = 'single' | 'staged';
+export type ExtractionProgressStage = 'single' | 'entity' | 'relation_schema' | 'relationship';
+
+export type ExtractionProgressEvent =
+  | {
+      type: 'stage_start' | 'stage_complete';
+      mode: ExtractionMode;
+      stage: ExtractionProgressStage;
+    }
+  | {
+      type: 'stage_retry';
+      mode: ExtractionMode;
+      stage: ExtractionProgressStage;
+      attempt: number;
+      reason: string;
+    }
+  | {
+      type: 'compile_start';
+      mode: 'staged';
+    }
+  | {
+      type: 'complete';
+      mode: ExtractionMode;
+      nodeCount: number;
+      edgeCount: number;
+      warningCount: number;
+    };
+
 // ============================================================================
 // Schema Types
 // ============================================================================
@@ -74,6 +102,9 @@ export interface Schema {
 
   /** Maximum number of edges to return. */
   maxEdges?: number;
+
+  /** Remove nodes with no edges from the final graph (default: false). */
+  pruneIsolatedNodes?: boolean;
 }
 
 export const DEFAULT_ENTITY_TYPES: EntityType[] = [
@@ -115,14 +146,29 @@ export interface ExtractorConfig {
   /** Default schema for all extractions */
   schema?: Schema;
 
+  /** Extraction mode (default: single) */
+  mode?: ExtractionMode;
+
+  /**
+   * Staged mode only: scope of the relationship extraction stage.
+   * 'global' (default) sends every evidence snippet in one call;
+   * 'snippet' makes one small call per snippet and merges the results,
+   * which bounds per-call output and keeps subject/object decisions local
+   * to a single sentence.
+   */
+  relationshipScope?: 'global' | 'snippet';
+
   /** Temperature for LLM (default: 0) */
   temperature?: number;
 
-  /** Max tokens for response (default: 4096) */
+  /** Max tokens for response (default: 16384) */
   maxTokens?: number;
 
   /** Number of retries on parse failure (default: 2) */
   maxRetries?: number;
+
+  /** Receive progress events as extraction advances. */
+  onProgress?: (event: ExtractionProgressEvent) => void;
 }
 
 export interface ProviderConfig {
@@ -141,16 +187,42 @@ export interface ProviderConfig {
   /** Stop sequences to send to OpenAI-compatible backends. */
   stop?: string[];
 
-  /** OpenAI-compatible response format override. */
-  responseFormat?: 'json_object' | 'json_schema';
+  /**
+   * OpenAI-compatible response format override.
+   * Defaults to 'json_schema' for the lmstudio provider; use 'text' to disable
+   * structured output entirely. If the server rejects response_format, the
+   * extractor falls back to plain text output and records a warning.
+   */
+  responseFormat?: 'json_object' | 'json_schema' | 'text';
+
+  /** Per-request timeout in milliseconds (default: 240000). */
+  timeoutMs?: number;
 }
 
 export interface ExtractionOptions {
   /** Override schema for this extraction */
   schema?: Schema;
 
+  /** Override extraction mode for this extraction */
+  mode?: ExtractionMode;
+
+  /** Include stage-level debug artifacts in the result */
+  includeDebugArtifacts?: boolean;
+
   /** Override temperature for this extraction */
   temperature?: number;
+
+  /** Receive progress events as extraction advances. */
+  onProgress?: (event: ExtractionProgressEvent) => void;
+}
+
+export interface ExtractionDebugStage {
+  name: 'entity' | 'relation_schema' | 'relationship';
+  raw: string;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
 }
 
 export interface ExtractionResult {
@@ -160,13 +232,20 @@ export interface ExtractionResult {
   /** Validation warnings (e.g., removed invalid edges) */
   warnings: ValidationWarning[];
 
-  /** Raw LLM response for debugging */
+  /** Raw LLM response for debugging. In staged mode this is the final stage raw response. */
   raw: string;
 
-  /** Token usage if available */
+  /** Token usage if available. In staged mode this aggregates all stages. */
   usage?: {
     inputTokens: number;
     outputTokens: number;
+  };
+
+  /** Optional debug artifacts for staged extraction. */
+  debug?: {
+    mode: ExtractionMode;
+    stages?: ExtractionDebugStage[];
+    compiled?: unknown;
   };
 }
 
@@ -189,7 +268,16 @@ export interface ValidationError {
 }
 
 export interface ValidationWarning {
-  type: 'invalid_edge_source' | 'invalid_edge_target' | 'removed_edge';
+  type:
+    | 'invalid_edge_source'
+    | 'invalid_edge_target'
+    | 'removed_edge'
+    | 'unresolved_relationship_source'
+    | 'unresolved_relationship_target'
+    | 'graph_truncated'
+    | 'isolated_nodes'
+    | 'snippet_relationship_failed'
+    | 'response_format_fallback';
   message: string;
   edgeId?: string;
   details?: Record<string, unknown>;

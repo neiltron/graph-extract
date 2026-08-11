@@ -1,13 +1,17 @@
 import {
-  type ExtractorConfig,
   GraphExtractError,
   ParseError,
-  type ProviderConfig,
   ProviderError,
-  type Schema,
   extract,
 } from '../../../../packages/graph-extract/src/index.js';
-import { readInput, readSchema, writeError, writeOutput } from '../utils/io.js';
+import type {
+  ExtractionMode,
+  ExtractionProgressStage,
+  ExtractorConfig,
+  ProviderConfig,
+  Schema,
+} from '../../../../packages/graph-extract/src/types.js';
+import { readInput, readSchema, writeError, writeOutput, writeStatus } from '../utils/io.js';
 
 export interface ExtractArgs {
   input?: string;
@@ -19,8 +23,13 @@ export interface ExtractArgs {
   apiKey?: string;
   stop?: string[];
   responseFormat?: string;
+  mode?: string;
+  relationshipScope?: string;
   maxNodes?: string;
   maxEdges?: string;
+  maxTokens?: string;
+  requestTimeout?: string;
+  pruneIsolated?: boolean;
   pretty?: boolean;
 }
 
@@ -35,6 +44,24 @@ const EXIT_CONFIG_ERROR = 4;
  */
 export async function runExtract(args: ExtractArgs): Promise<number> {
   try {
+    const showProgress = process.stderr.isTTY;
+
+    let mode: ExtractionMode;
+    let relationshipScope: 'global' | 'snippet' | undefined;
+    try {
+      mode = resolveMode(args.mode ?? process.env.GRAPH_EXTRACT_MODE);
+      relationshipScope = resolveRelationshipScope(
+        args.relationshipScope ?? process.env.GRAPH_EXTRACT_RELATIONSHIP_SCOPE,
+      );
+    } catch (e) {
+      writeError(`Error: ${(e as Error).message}`);
+      return EXIT_CONFIG_ERROR;
+    }
+
+    if (showProgress) {
+      writeStatus(`[graph-extract] Reading input from ${args.input ? args.input : 'stdin'}...`);
+    }
+
     // Read input text
     let text: string;
     try {
@@ -52,6 +79,10 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
     // Build schema
     let schema: Schema | undefined;
     if (args.schema) {
+      if (showProgress) {
+        writeStatus(`[graph-extract] Loading schema from ${args.schema}...`);
+      }
+
       try {
         const schemaData = readSchema(args.schema);
         schema = {
@@ -65,6 +96,10 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
             typeof schemaData.instructions === 'string' ? schemaData.instructions : undefined,
           maxNodes: typeof schemaData.maxNodes === 'number' ? schemaData.maxNodes : undefined,
           maxEdges: typeof schemaData.maxEdges === 'number' ? schemaData.maxEdges : undefined,
+          pruneIsolatedNodes:
+            typeof schemaData.pruneIsolatedNodes === 'boolean'
+              ? schemaData.pruneIsolatedNodes
+              : undefined,
         };
       } catch (e) {
         writeError(`Error: ${(e as Error).message}`);
@@ -86,9 +121,30 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
       return EXIT_CONFIG_ERROR;
     }
 
+    if (showProgress) {
+      writeStatus(
+        `[graph-extract] Starting ${mode} extraction with ${provider.type}/${provider.model}...`,
+      );
+    }
+
+    let maxTokens: number | undefined;
+    try {
+      maxTokens = resolvePositiveInteger(
+        args.maxTokens ?? process.env.GRAPH_EXTRACT_MAX_TOKENS,
+        'max-tokens',
+      );
+    } catch (e) {
+      writeError(`Error: ${(e as Error).message}`);
+      return EXIT_CONFIG_ERROR;
+    }
+
     const config: ExtractorConfig = {
       provider,
       schema,
+      mode,
+      relationshipScope,
+      maxTokens,
+      onProgress: createProgressReporter(showProgress),
     };
 
     // Perform extraction
@@ -104,6 +160,10 @@ export async function runExtract(args: ExtractArgs): Promise<number> {
       ? JSON.stringify(result.graph, null, 2)
       : JSON.stringify(result.graph);
     writeOutput(`${output}\n`, args.output);
+
+    if (showProgress && args.output) {
+      writeStatus(`[graph-extract] Wrote graph to ${args.output}`);
+    }
 
     return EXIT_SUCCESS;
   } catch (e) {
@@ -146,6 +206,11 @@ export function resolveProvider(args: ExtractArgs): ProviderConfig {
     args.responseFormat ?? process.env.GRAPH_EXTRACT_RESPONSE_FORMAT,
   );
 
+  const timeoutSeconds = resolvePositiveInteger(
+    args.requestTimeout ?? process.env.GRAPH_EXTRACT_REQUEST_TIMEOUT,
+    'request-timeout',
+  );
+
   return {
     type,
     baseUrl,
@@ -153,6 +218,7 @@ export function resolveProvider(args: ExtractArgs): ProviderConfig {
     apiKey,
     stop,
     responseFormat,
+    timeoutMs: timeoutSeconds !== undefined ? timeoutSeconds * 1000 : undefined,
   };
 }
 
@@ -161,13 +227,39 @@ function resolveResponseFormat(value?: string): ProviderConfig['responseFormat']
     return undefined;
   }
 
-  if (value === 'json_object' || value === 'json_schema') {
+  if (value === 'json_object' || value === 'json_schema' || value === 'text') {
     return value;
   }
 
   throw new GraphExtractError(
-    `Unsupported response format: ${value}. Supported values: json_object, json_schema`,
+    `Unsupported response format: ${value}. Supported values: json_object, json_schema, text`,
   );
+}
+
+export function resolveRelationshipScope(value?: string): 'global' | 'snippet' | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  if (value === 'global' || value === 'snippet') {
+    return value;
+  }
+
+  throw new GraphExtractError(
+    `Unsupported relationship scope: ${value}. Supported values: global, snippet`,
+  );
+}
+
+export function resolveMode(value?: string): ExtractionMode {
+  if (!value) {
+    return 'single';
+  }
+
+  if (value === 'single' || value === 'staged') {
+    return value;
+  }
+
+  throw new GraphExtractError(`Unsupported mode: ${value}. Supported values: single, staged`);
 }
 
 function resolveStopSequences(
@@ -198,8 +290,10 @@ function resolveStopSequences(
 function applySchemaOverrides(schema: Schema | undefined, args: ExtractArgs): Schema | undefined {
   const maxNodes = resolvePositiveInteger(args.maxNodes, 'max-nodes');
   const maxEdges = resolvePositiveInteger(args.maxEdges, 'max-edges');
+  const pruneIsolated =
+    args.pruneIsolated || isTruthyEnv(process.env.GRAPH_EXTRACT_PRUNE_ISOLATED) ? true : undefined;
 
-  if (maxNodes === undefined && maxEdges === undefined) {
+  if (maxNodes === undefined && maxEdges === undefined && pruneIsolated === undefined) {
     return schema;
   }
 
@@ -207,7 +301,12 @@ function applySchemaOverrides(schema: Schema | undefined, args: ExtractArgs): Sc
     ...schema,
     maxNodes: maxNodes ?? schema?.maxNodes,
     maxEdges: maxEdges ?? schema?.maxEdges,
+    pruneIsolatedNodes: pruneIsolated ?? schema?.pruneIsolatedNodes,
   };
+}
+
+function isTruthyEnv(value: string | undefined): boolean {
+  return value === '1' || value === 'true' || value === 'yes';
 }
 
 function resolvePositiveInteger(value: string | undefined, name: string): number | undefined {
@@ -221,4 +320,51 @@ function resolvePositiveInteger(value: string | undefined, name: string): number
   }
 
   return parsed;
+}
+
+function createProgressReporter(showProgress: boolean): ExtractorConfig['onProgress'] {
+  if (!showProgress) {
+    return undefined;
+  }
+
+  return (event) => {
+    switch (event.type) {
+      case 'stage_start':
+        writeStatus(`[graph-extract] ${formatStage(event.stage)}...`);
+        break;
+      case 'stage_complete':
+        writeStatus(`[graph-extract] ${formatStage(event.stage, true)}.`);
+        break;
+      case 'stage_retry':
+        writeStatus(
+          `[graph-extract] Retrying ${event.stage} stage (attempt ${event.attempt + 1}): ${event.reason}`,
+        );
+        break;
+      case 'compile_start':
+        writeStatus('[graph-extract] Compiling final graph...');
+        break;
+      case 'complete':
+        writeStatus(
+          `[graph-extract] Extraction complete (${event.nodeCount} nodes, ${event.edgeCount} edges, ${event.warningCount} warnings).`,
+        );
+        break;
+    }
+  };
+}
+
+function formatStage(stage: ExtractionProgressStage, completed = false): string {
+  switch (stage) {
+    case 'single':
+      return completed ? 'Single-pass extraction complete' : 'Running single-pass extraction';
+    case 'entity':
+      return completed ? 'Entity extraction stage complete' : 'Running entity extraction stage';
+    case 'relation_schema':
+      return completed ? 'Relation schema stage complete' : 'Running relation schema stage';
+    case 'relationship':
+      return completed
+        ? 'Relationship extraction stage complete'
+        : 'Running relationship extraction stage';
+    default:
+      return completed ? 'Extraction stage complete' : 'Running extraction stage';
+  }
 }

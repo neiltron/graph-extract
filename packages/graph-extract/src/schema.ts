@@ -12,5 +12,6 @@ export function resolveSchema(
     instructions: schema?.instructions,
     maxNodes: schema?.maxNodes,
     maxEdges: schema?.maxEdges,
+    pruneIsolatedNodes: schema?.pruneIsolatedNodes,
   };
 }

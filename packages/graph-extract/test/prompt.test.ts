@@ -70,6 +70,7 @@ describe('buildPrompt', () => {
     expect(prompt).toContain('Deduplicate entities');
     expect(prompt).toContain('sequential IDs');
     expect(prompt).toContain('lowercase_with_underscores');
+    expect(prompt).toContain('source is the subject and target is the object');
   });
 
   test('includes output limits when provided', () => {

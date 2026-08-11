@@ -98,3 +98,115 @@ export function validate(graph: Graph): ValidationResult {
     },
   };
 }
+
+/**
+ * Report nodes with no edges, and optionally remove them.
+ * Isolated nodes are usually a recall artifact (e.g. a relation carried by a
+ * pronoun that snippet grounding could not cite) — surface them so callers can
+ * decide, and prune deterministically when asked.
+ */
+export function compactGraph(
+  graph: Graph,
+  options: { pruneIsolatedNodes?: boolean },
+): { graph: Graph; warnings: ValidationWarning[] } {
+  const connected = new Set<string>();
+  for (const edge of graph.edges) {
+    connected.add(edge.source);
+    connected.add(edge.target);
+  }
+
+  const isolated = graph.nodes.filter((node) => !connected.has(node.id));
+  if (isolated.length === 0) {
+    return { graph, warnings: [] };
+  }
+
+  const labels = isolated.map((node) => node.label);
+
+  if (!options.pruneIsolatedNodes) {
+    return {
+      graph,
+      warnings: [
+        {
+          type: 'isolated_nodes',
+          message: `${isolated.length} node(s) have no edges: ${labels.join(', ')}`,
+          details: { labels },
+        },
+      ],
+    };
+  }
+
+  return {
+    graph: {
+      nodes: graph.nodes.filter((node) => connected.has(node.id)),
+      edges: graph.edges,
+    },
+    warnings: [
+      {
+        type: 'isolated_nodes',
+        message: `Pruned ${isolated.length} node(s) with no edges: ${labels.join(', ')}`,
+        details: { labels, pruned: true },
+      },
+    ],
+  };
+}
+
+/**
+ * Deterministically trim a graph to the schema's maxNodes/maxEdges limits.
+ * Nodes are ranked by degree (edge count), preserving original order on ties
+ * since models tend to list salient entities first. Edges referencing trimmed
+ * nodes are dropped, then remaining edges are kept in original order up to the
+ * limit. Returns the trimmed graph plus a single summary warning when anything
+ * was removed.
+ */
+export function enforceGraphLimits(
+  graph: Graph,
+  limits: { maxNodes?: number; maxEdges?: number },
+): { graph: Graph; warnings: ValidationWarning[] } {
+  const { maxNodes, maxEdges } = limits;
+  const overNodes = maxNodes !== undefined && graph.nodes.length > maxNodes;
+  const overEdges = maxEdges !== undefined && graph.edges.length > maxEdges;
+
+  if (!overNodes && !overEdges) {
+    return { graph, warnings: [] };
+  }
+
+  let nodes = graph.nodes;
+  let edges = graph.edges;
+
+  if (overNodes && maxNodes !== undefined) {
+    const degree = new Map<string, number>();
+    for (const edge of edges) {
+      degree.set(edge.source, (degree.get(edge.source) ?? 0) + 1);
+      degree.set(edge.target, (degree.get(edge.target) ?? 0) + 1);
+    }
+
+    const ranked = nodes
+      .map((node, index) => ({ node, index, degree: degree.get(node.id) ?? 0 }))
+      .sort((a, b) => b.degree - a.degree || a.index - b.index)
+      .slice(0, maxNodes)
+      .sort((a, b) => a.index - b.index);
+
+    nodes = ranked.map((entry) => entry.node);
+    const keptIds = new Set(nodes.map((node) => node.id));
+    edges = edges.filter((edge) => keptIds.has(edge.source) && keptIds.has(edge.target));
+  }
+
+  if (maxEdges !== undefined && edges.length > maxEdges) {
+    edges = edges.slice(0, maxEdges);
+  }
+
+  const warnings: ValidationWarning[] = [
+    {
+      type: 'graph_truncated',
+      message: `Trimmed graph from ${graph.nodes.length} to ${nodes.length} nodes and ${graph.edges.length} to ${edges.length} edges to satisfy limits`,
+      details: {
+        maxNodes,
+        maxEdges,
+        originalNodeCount: graph.nodes.length,
+        originalEdgeCount: graph.edges.length,
+      },
+    },
+  ];
+
+  return { graph: { nodes, edges }, warnings };
+}

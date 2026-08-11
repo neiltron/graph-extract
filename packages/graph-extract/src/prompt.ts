@@ -38,9 +38,10 @@ RULES:
 5. Extract ALL entities and relationships present in the text
 6. Use lowercase_with_underscores for relation types
 7. Labels should be human-readable
-${schema.maxNodes ? `8. Return at most ${schema.maxNodes} nodes` : ''}
-${schema.maxEdges ? `\n${schema.maxNodes ? 9 : 8}. Return at most ${schema.maxEdges} edges` : ''}
-${schema.maxNodes || schema.maxEdges ? `\n${schema.maxNodes && schema.maxEdges ? 10 : 9}. If limits are reached, keep only the most salient entities and relationships` : ''}
+8. Edge direction matters: source is the subject and target is the object, so "<source label> <relation type> <target label>" must read as a true sentence; swap source and target if it only reads correctly reversed
+${schema.maxNodes ? `9. Return at most ${schema.maxNodes} nodes` : ''}
+${schema.maxEdges ? `\n${schema.maxNodes ? 10 : 9}. Return at most ${schema.maxEdges} edges` : ''}
+${schema.maxNodes || schema.maxEdges ? `\n${schema.maxNodes && schema.maxEdges ? 11 : 10}. If limits are reached, keep only the most salient entities and relationships` : ''}
 
 JSON:`;
 }
